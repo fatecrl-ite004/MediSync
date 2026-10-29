@@ -6,22 +6,6 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e te
 
 [Documentação e apresentação da P1 na wiki](https://github.com/fatecrl-ite004/MediSync/wiki)
 
-## Sumário
-
-- [Funcionalidades](#funcionalidades)
-- [Tecnologias](#tecnologias)
-- [Pré-requisitos](#pré-requisitos)
-- [Obter o projeto](#obter-o-projeto)
-- [Instalar as dependências](#instalar-as-dependências)
-- [Configuração](#configuração)
-- [Executar localmente](#executar-localmente)
-- [Build e prévia local](#build-e-prévia-local)
-- [Testes](#testes)
-- [Estrutura do repositório](#estrutura-do-repositório)
-- [Dados locais e backup](#dados-locais-e-backup)
-- [Solução de problemas](#solução-de-problemas)
-- [Equipe e documentação](#equipe-e-documentação)
-
 ## Funcionalidades
 
 - Agenda com cadastro, busca, filtros, reagendamento e cancelamento de consultas com motivo.
@@ -36,13 +20,15 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e te
 
 > Utilize somente dados fictícios. O login é simulado e o projeto ainda não possui autenticação real, banco definitivo ou prontuário certificado. Essas funcionalidades fazem parte da evolução planejada.
 
-## Tecnologias
+## Tecnologias utilizadas
 
-| Parte | Tecnologias e finalidade |
+| Categoria | Tecnologias e uso no projeto |
 | --- | --- |
-| Frontend | React 18, TypeScript 5 e Vite 6 para interface e build. |
+| Linguagens | HTML, CSS, TypeScript na interface e JavaScript no backend. |
+| Frontend | React 18 para a interface web. |
 | Backend | Node.js e Express 4 para a API HTTP. |
-| Tempo real | Socket.IO 4 para mensagens e eventos; WebRTC para chamadas. |
+| Ferramentas de build | Vite 6 e TypeScript 5 para desenvolvimento, verificação e compilação. |
+| Comunicação | Socket.IO 4 para eventos em tempo real e WebRTC para voz e vídeo. |
 | Armazenamento | Arquivo JSON local, criado pelo backend. |
 | Testes | Executor nativo `node --test` e `node:assert`. |
 
@@ -68,7 +54,9 @@ npm.cmd --version
 
 Os exemplos abaixo usam **PowerShell no Windows**. No Linux/macOS, use `npm` no lugar de `npm.cmd`; os demais comandos Git e npm são os mesmos. No Windows, `npm.cmd` também evita o bloqueio de execução do arquivo `npm.ps1` pelo PowerShell.
 
-## Obter o projeto
+## Instalação e configuração
+
+### 1. Obter o código-fonte
 
 Em uma pasta onde você possa criar arquivos, execute:
 
@@ -79,7 +67,7 @@ cd MediSync
 
 A pasta `MediSync` é a **raiz do projeto**: nela ficam este README, `backend` e `frontend`. Os comandos das próximas seções partem dessa pasta, salvo indicação em contrário.
 
-## Instalar as dependências
+### 2. Instalar as dependências
 
 Na raiz, instale os dois conjuntos de dependências:
 
@@ -92,9 +80,9 @@ npm.cmd --prefix frontend ci
 
 Não há `package.json` na raiz: não execute `npm install` ou `npm start` nela sem indicar `--prefix backend` ou `--prefix frontend`.
 
-## Configuração
+### 3. Configurar o ambiente
 
-### Configuração padrão
+#### Configuração padrão
 
 **Nenhuma variável de ambiente ou arquivo `.env` é obrigatório.** Esta versão não carrega `.env` automaticamente e não exige senha, token, chave de API, migração ou script SQL para iniciar.
 
@@ -108,7 +96,7 @@ Não há `package.json` na raiz: não execute `npm install` ou `npm start` nela 
 
 A pasta `backend/data` e os dados de exemplo são criados automaticamente na primeira inicialização do backend. Não é necessário criá-los manualmente.
 
-### Variáveis opcionais do backend
+#### Variáveis opcionais do backend
 
 O backend lê estas variáveis do ambiente do processo:
 
@@ -128,7 +116,15 @@ A variável permanece somente nessa sessão do PowerShell. Para voltar ao padrã
 
 Se alterar `PORT`, ajuste também as constantes `API` e `SOCKET_URL` em [frontend/src/App.tsx](frontend/src/App.tsx), pois os endereços estão definidos no código. Reinicie os dois servidores após essa alteração. **Não é necessário mudar portas para o fluxo padrão.** Não adicione credenciais ou outros segredos ao repositório.
 
-## Executar localmente
+#### Dados locais e backup
+
+Perfil, pacientes, consultas, registros, mensagens e preferências ficam em `backend/data/medisync.json`. Reiniciar o backend preserva esses dados. As consultas de exemplo recebem datas relativas à primeira inicialização; recarregar a página volta ao login simulado.
+
+Para fazer backup, **pare o backend** e copie a pasta `backend/data`. Para começar uma nova demonstração, pare o backend e renomeie essa pasta, preservando a cópia; ao iniciar novamente, os dados iniciais serão recriados. Ao atualizar o projeto, preserve os dados da instalação anterior.
+
+O armazenamento é local, sem criptografia ou banco multiusuário. Não execute várias instâncias do backend sobre o mesmo arquivo. A evolução do projeto inclui autenticação e autorização completas, banco definitivo, auditoria e revisão de proteção de dados.
+
+## Execução em ambiente de desenvolvimento
 
 ### 1. Iniciar o backend
 
@@ -189,27 +185,7 @@ Consultas canceladas ou concluídas não abrem novas salas. As salas vinculadas 
 
 Para a demonstração local, use o mesmo computador e `localhost`. O WebRTC utiliza STUN público; chamadas entre redes diferentes podem exigir TURN e HTTPS. As instruções locais não configuram acesso por outro computador ou celular, pois a interface usa endereços `localhost` definidos no código.
 
-## Build e prévia local
-
-Com as dependências já instaladas, na raiz:
-
-```powershell
-npm.cmd --prefix frontend run build
-```
-
-O comando executa a verificação TypeScript e gera os arquivos estáticos em **`frontend/dist`**. O resultado esperado é a compilação terminar sem erros e listar os arquivos gerados.
-
-Para conferir o build, mantenha o backend ativo e execute, em outro terminal na raiz:
-
-```powershell
-npm.cmd --prefix frontend run preview -- --host localhost --port 4173 --strictPort
-```
-
-Acesse **[http://localhost:4173](http://localhost:4173)**. A prévia serve o último conteúdo de `dist`: após alterar o frontend, execute o build novamente.
-
-O backend é JavaScript executado diretamente com Node.js; **não possui script de build**. O servidor `preview` é uma ferramenta de verificação local, não uma configuração de implantação em produção.
-
-## Testes
+### Testes
 
 Na raiz, execute:
 
@@ -223,7 +199,49 @@ Ele inicia uma API na porta **3198**, usa um arquivo temporário e encerra o pro
 
 O frontend não possui um script de testes automatizados. Utilize `npm.cmd --prefix frontend run build` para verificar a compilação e siga o roteiro de instalação para a conferência manual das telas. Os resultados anteriores e os limites da validação estão em [VALIDACAO.md](VALIDACAO.md).
 
-## Estrutura do repositório
+### Solução de problemas
+
+| Sintoma | O que verificar |
+| --- | --- |
+| `git` ou `node` não reconhecido | Instale o pré-requisito e reabra o terminal para atualizar o PATH. |
+| `npm.ps1` bloqueado no PowerShell | Use `npm.cmd`, como nos exemplos; não é necessário mudar a política de execução. |
+| `ENOENT` ou `package.json` não encontrado | Entre na raiz `MediSync` e utilize o `--prefix` correto. |
+| Erro durante `npm ci` | Confira a conexão, a versão do Node.js e a mensagem exibida. Mantenha os arquivos de lock do clone. |
+| `EADDRINUSE` ou porta ocupada | Encerre a instância anterior do MediSync ou o programa que ocupa a porta e execute novamente. |
+| Interface abre, mas não entra ou não carrega dados | Confira se a API está ativa em `http://localhost:3000/api/health` e se os endereços em `App.tsx` correspondem à porta usada. |
+| Arquivo de dados incompleto ou inválido | Pare o backend e restaure um backup válido. Para recriar somente a demonstração, renomeie a pasta `data` preservando a cópia. |
+| Erro ao salvar dados | Confira espaço disponível e permissão de escrita na pasta do arquivo JSON. |
+| Câmera/microfone não disponíveis | Confira as permissões do navegador e use `localhost` no teste local. Não há garantia de chamadas entre todas as redes. |
+
+## Build para produção
+
+Com as dependências já instaladas, na raiz:
+
+```powershell
+npm.cmd --prefix frontend run build
+```
+
+O comando executa a verificação TypeScript e gera os arquivos estáticos em **`frontend/dist`**. O resultado esperado é a compilação terminar sem erros e listar os arquivos gerados.
+
+### Testar a versão de produção localmente
+
+Para conferir o build, mantenha o backend ativo e execute, em outro terminal na raiz:
+
+```powershell
+npm.cmd --prefix frontend run preview -- --host localhost --port 4173 --strictPort
+```
+
+Acesse **[http://localhost:4173](http://localhost:4173)**. A prévia serve o último conteúdo de `dist`: após alterar o frontend, execute o build novamente.
+
+O backend é JavaScript executado diretamente com Node.js; **não possui script de build**. O servidor `preview` é uma ferramenta de verificação local, não uma configuração de implantação em produção.
+
+## Aplicação publicada
+
+Esta versão está disponível para **execução local**, nos endereços informados acima. Não há uma URL de aplicação hospedada documentada no repositório; a publicação da aplicação está prevista como evolução.
+
+O [repositório público](https://github.com/fatecrl-ite004/MediSync) disponibiliza o código-fonte, e a [wiki](https://github.com/fatecrl-ite004/MediSync/wiki) reúne a documentação do projeto.
+
+## Estrutura do projeto
 
 | Caminho | Conteúdo |
 | --- | --- |
@@ -241,34 +259,22 @@ O frontend não possui um script de testes automatizados. Utilize `npm.cmd --pre
 | [MER/MER.jpeg](MER/MER.jpeg) | Modelo inicial de dados. |
 | [INICIAR-WINDOWS.bat](INICIAR-WINDOWS.bat) | Atalho de execução no Windows. |
 
-## Dados locais e backup
+## Equipe
 
-Perfil, pacientes, consultas, registros, mensagens e preferências ficam em `backend/data/medisync.json`. Reiniciar o backend preserva esses dados. As consultas de exemplo recebem datas relativas à primeira inicialização; recarregar a página volta ao login simulado.
+A apresentação da P1 identifica os integrantes abaixo. As responsabilidades individuais não estão especificadas na documentação atual e devem ser confirmadas pelo grupo.
 
-Para fazer backup, **pare o backend** e copie a pasta `backend/data`. Para começar uma nova demonstração, pare o backend e renomeie essa pasta, preservando a cópia; ao iniciar novamente, os dados iniciais serão recriados. Ao atualizar o projeto, preserve os dados da instalação anterior.
-
-O armazenamento é local, sem criptografia ou banco multiusuário. Não execute várias instâncias do backend sobre o mesmo arquivo. A evolução do projeto inclui autenticação e autorização completas, banco definitivo, auditoria e revisão de proteção de dados.
-
-## Solução de problemas
-
-| Sintoma | O que verificar |
+| Integrante | Responsabilidade |
 | --- | --- |
-| `git` ou `node` não reconhecido | Instale o pré-requisito e reabra o terminal para atualizar o PATH. |
-| `npm.ps1` bloqueado no PowerShell | Use `npm.cmd`, como nos exemplos; não é necessário mudar a política de execução. |
-| `ENOENT` ou `package.json` não encontrado | Entre na raiz `MediSync` e utilize o `--prefix` correto. |
-| Erro durante `npm ci` | Confira a conexão, a versão do Node.js e a mensagem exibida. Mantenha os arquivos de lock do clone. |
-| `EADDRINUSE` ou porta ocupada | Encerre a instância anterior do MediSync ou o programa que ocupa a porta e execute novamente. |
-| Interface abre, mas não entra ou não carrega dados | Confira se a API está ativa em `http://localhost:3000/api/health` e se os endereços em `App.tsx` correspondem à porta usada. |
-| Arquivo de dados incompleto ou inválido | Pare o backend e restaure um backup válido. Para recriar somente a demonstração, renomeie a pasta `data` preservando a cópia. |
-| Erro ao salvar dados | Confira espaço disponível e permissão de escrita na pasta do arquivo JSON. |
-| Câmera/microfone não disponíveis | Confira as permissões do navegador e use `localhost` no teste local. Não há garantia de chamadas entre todas as redes. |
+| Luiz Henrique dos Passos Silva | Divisão individual a confirmar com o grupo. |
+| Danilo Almeida Brito | Divisão individual a confirmar com o grupo. |
+| Leandro | Divisão individual a confirmar com o grupo. |
 
-## Equipe e documentação
+## Documentação adicional
 
-Equipe conforme a apresentação da P1: **Luiz Henrique dos Passos Silva, Danilo Almeida Brito e Leandro**.
+Consulte a [Wiki do MediSync](https://github.com/fatecrl-ite004/MediSync/wiki) para conhecer o problema, o público-alvo, a apresentação da P1, as funcionalidades, a arquitetura, o modelo de dados e as próximas etapas.
 
-- [Wiki do MediSync](https://github.com/fatecrl-ite004/MediSync/wiki): problema, público-alvo, proposta, escopo, arquitetura e evolução.
 - [Registro de validação](VALIDACAO.md): verificações documentadas do protótipo.
+- [Modelo inicial de dados](MER/MER.jpeg): diagrama disponível no repositório.
 - [Issues do projeto](https://github.com/fatecrl-ite004/MediSync/issues): dúvidas e relatos de problemas, com passos para reproduzir e sem dados pessoais ou credenciais.
 
 O repositório ainda não define uma licença de uso.
