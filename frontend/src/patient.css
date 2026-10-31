@@ -1,0 +1,220 @@
+/* Patient journeys: one clear next step, comfortable reading, no timed decisions. */
+:root { --primary:#087e7a; --primary-strong:#06635f; --primary-soft:#e6f4f1; --muted:#536779; --bg:#f3f7f8; --sidebar:#102b3b; }
+:root[data-theme="dark"] { --primary:#67d4c5; --primary-strong:#88e2d6; --primary-soft:#123b37; --muted:#b0c2cf; --bg:#0a151b; }
+:root[data-theme="dark"] .btn.primary { color:#082b29; }
+:root[data-contrast="high"] { --muted:var(--text); --border:var(--text); }
+:root[data-contrast="high"] .card, :root[data-contrast="high"] .btn { border-width:2px; }
+body { line-height:1.55; }
+button, a, input, select, textarea, summary { -webkit-tap-highlight-color:transparent; }
+button, input, select { min-height:48px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:9px; border-radius:12px; padding:12px 18px; line-height:1.4; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline:3px solid var(--primary); outline-offset:4px; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.skip-link { position:fixed; top:-120px; left:16px; z-index:300; background:var(--surface); padding:14px; color:var(--primary); }
+.skip-link:focus { top:12px; }
+.brand span, .mobile-brand > span { color:#66d0c0; }
+.patient-experience { max-width:1000px; margin:0 auto; }
+.patient-experience h1, .patient-login h1 { font-size:clamp(1.9rem,3.1vw,2.8rem); letter-spacing:-.045em; line-height:1.16; margin:0 0 12px; }
+.patient-experience h1:focus, .patient-login h1:focus { outline:none; }
+.patient-experience h2 { font-size:1.3rem; line-height:1.35; margin:0 0 14px; }
+.patient-experience p { color:var(--muted); margin-bottom:20px; }
+.patient-experience .eyebrow, .patient-login .eyebrow { font-size:.78rem; letter-spacing:.09em; }
+.patient-shell .content-wrap { padding-top:38px; }
+.patient-shell .sidebar nav button { min-height:50px; font-size:.95rem; }
+.sidebar nav svg { flex-shrink:0; }
+.sidebar nav button.active { background:#1b4d55; color:#fff; }
+.sidebar-user .patient-avatar, .user-pill .patient-avatar { display:grid; place-items:center; border-radius:50%; width:40px; height:40px; color:#fff; background:#1c6b70; font-weight:750; flex-shrink:0; }
+.topbar { justify-content:flex-end; }
+.top-icon { display:grid; place-items:center; }
+.reading-shortcut { background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:12px; display:flex; align-items:center; gap:2px; padding:8px 12px; font-weight:800; }
+.reading-shortcut small { margin-left:6px; font-weight:600; }
+.reading-shortcut[aria-pressed="true"], .reading-options .btn[aria-pressed="true"] { border:2px solid var(--primary); background:var(--primary-soft); color:var(--primary); }
+.patient-welcome, .patient-page-heading { display:flex; align-items:center; justify-content:space-between; gap:30px; margin-bottom:35px; }
+.patient-welcome p, .patient-page-heading p { margin:0; font-size:1.06rem; }
+.patient-main-action { min-height:56px; flex-shrink:0; }
+.patient-section-title { display:flex; justify-content:space-between; align-items:center; gap:15px; margin:0 0 16px; }
+.patient-section-title h2 { margin:0; }
+.patient-link { display:inline-flex; align-items:center; justify-content:flex-start; gap:8px; border:0; padding:8px 0; color:var(--primary); background:transparent; font-size:.95rem; font-weight:750; text-align:left; text-decoration:underline; text-underline-offset:4px; }
+.patient-link:hover { text-decoration-thickness:2px; }
+.patient-visit { display:flex; align-items:flex-start; gap:24px; padding:26px; border:1px solid var(--border); border-radius:18px; box-shadow:none; }
+.featured-visit { border-top:4px solid var(--primary); box-shadow:var(--shadow); }
+.visit-date { display:grid; text-align:center; flex-shrink:0; min-width:76px; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--surface-2); }
+.visit-date > span { background:var(--primary-soft); color:var(--primary); font-size:.8rem; text-transform:uppercase; padding:6px 12px; font-weight:750; }
+.visit-date > strong { font-size:2rem; line-height:1.6; }
+.visit-body { min-width:0; flex:1; }
+.visit-summary { display:grid; gap:4px; margin:13px 0 14px; }
+.visit-summary > strong { font-size:1.25rem; line-height:1.4; }
+.visit-summary > span { font-size:1rem; }
+.visit-summary small { font-size:.82rem; color:var(--muted); }
+.patient-status { display:inline-flex; gap:5px; align-items:center; font-weight:700; font-size:.82rem; padding:4px 9px; border-radius:6px; background:var(--primary-soft); color:var(--primary); }
+.status-cancelled { background:var(--surface-3); color:var(--muted); }
+.status-completed { background:var(--success-soft); color:var(--success); }
+.patient-experience .visit-hint { font-size:.88rem; margin:0 0 20px; }
+.patient-visit-actions { display:flex; align-items:flex-start; flex-wrap:wrap; gap:12px; }
+.visit-options { border:0; padding:0; }
+.visit-options summary { padding:12px 3px; color:var(--muted); min-height:48px; font-size:.9rem; font-weight:650; }
+.visit-options .actions { margin-top:10px; }
+.patient-cancel { color:var(--danger); }
+.patient-shortcuts, .patient-more-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:26px 0; }
+.patient-shortcut { display:flex; align-items:center; gap:14px; padding:21px; text-align:left; border:1px solid var(--border); border-radius:16px; color:var(--text); background:var(--surface); box-shadow:none; }
+.patient-shortcut:hover { border-color:var(--primary); background:var(--surface-2); }
+.patient-shortcut > span:nth-child(2), .login-choice > span:nth-child(2) { display:grid; gap:5px; flex:1; min-width:0; }
+.patient-shortcut strong { font-size:1rem; }
+.patient-shortcut small { font-size:.87rem; color:var(--muted); font-weight:400; }
+.shortcut-icon { display:grid; place-items:center; min-width:42px; height:42px; color:var(--primary); background:var(--primary-soft); border-radius:12px; flex-shrink:0; }
+.patient-shortcut > svg, .login-choice > svg { flex-shrink:0; color:var(--primary); }
+.patient-experience .patient-demo-note { font-size:.82rem; color:var(--muted); margin:24px 0; }
+.patient-visit-list { display:grid; gap:16px; }
+.patient-count { display:inline-block; font-size:.85rem; margin-left:6px; border-radius:7px; padding:3px 8px; color:var(--muted); background:var(--surface-3); }
+.patient-empty { padding:30px 22px; text-align:center; border:1px dashed var(--border); border-radius:16px; }
+.patient-empty > svg { color:var(--primary); margin-bottom:12px; }
+.patient-empty h2 { margin-bottom:8px; }
+.patient-history { padding:8px 22px; margin-top:24px; box-shadow:none; }
+.patient-history > summary { min-height:58px; padding:14px 0; }
+.patient-history .patient-visit-list { padding-bottom:15px; }
+.waitlist-link { margin-top:15px; }
+.patient-error { display:grid; gap:4px; background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger); border-radius:12px; padding:14px; margin:18px 0; }
+.patient-notice { display:flex; gap:12px; background:var(--success-soft); color:var(--success); border:1px solid var(--success); border-radius:12px; padding:16px; margin:18px 0; }
+.patient-notice > svg { flex-shrink:0; }
+.patient-confirm-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+.cancel-explanation { color:var(--muted); }
+.patient-booking { max-width:760px; }
+.booking-top { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:22px; }
+.booking-top > span { color:var(--muted); font-size:.86rem; }
+.booking-steps { display:flex; list-style:none; padding:0; margin:0 0 26px; gap:12px; }
+.booking-steps li { flex:1; display:flex; align-items:center; gap:8px; font-size:.88rem; color:var(--muted); border-bottom:2px solid var(--border); padding-bottom:15px; }
+.booking-steps li > span { border-radius:50%; width:27px; height:27px; display:grid; place-items:center; background:var(--surface-3); font-size:.8rem; flex-shrink:0; }
+.booking-steps li.reached { color:var(--primary); border-color:var(--primary); font-weight:700; }
+.booking-steps li.reached > span { background:var(--primary-soft); }
+.booking-card { padding:32px; border:1px solid var(--border); border-radius:20px; box-shadow:none; }
+.booking-card h1 { font-size:clamp(1.7rem,3vw,2.1rem); }
+.booking-card p { line-height:1.6; }
+.service-options, .time-options { border:0; padding:0; margin:24px 0; min-width:0; }
+.service-options { display:grid; gap:12px; }
+.service-option { display:flex; align-items:center; gap:15px; padding:18px; background:var(--surface); border:2px solid var(--border); border-radius:14px; cursor:pointer; }
+.service-option input { width:20px; height:20px; min-height:20px; accent-color:var(--primary); flex-shrink:0; }
+.service-option > span { display:grid; gap:6px; }
+.service-option strong { font-size:1.05rem; }
+.service-option small { color:var(--muted); font-size:.88rem; font-weight:400; }
+.service-option.chosen, .time-option.chosen { border-color:var(--primary); background:var(--primary-soft); }
+.booking-bottom { display:grid; gap:13px; border-top:1px solid var(--border); padding-top:23px; margin-top:26px; text-align:center; }
+.booking-bottom small, .slot-explanation, .booking-timezone { color:var(--muted); font-size:.86rem; }
+.booking-day { display:grid; gap:9px; margin-top:24px; }
+.booking-card select { padding:12px; width:100%; min-width:0; border:1px solid var(--border); color:var(--text); background:var(--surface); border-radius:10px; text-overflow:ellipsis; }
+.time-options legend { padding:0; font-weight:700; margin-bottom:14px; }
+.time-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.time-option { position:relative; display:grid; place-items:center; min-height:52px; border:2px solid var(--border); border-radius:10px; cursor:pointer; font-weight:700; }
+.time-option:focus-within { outline:3px solid var(--primary); outline-offset:3px; }
+.patient-loading { padding:30px 0; }
+.booking-review { padding:23px; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; margin-top:23px; }
+.booking-review h2 { margin-top:16px; }
+.booking-review p:last-of-type { margin-bottom:8px; }
+.booking-success-icon { width:66px; height:66px; display:grid; place-items:center; background:var(--success-soft); color:var(--success); border-radius:50%; margin:20px 0; }
+.patient-booking .visit-summary { padding:20px; background:var(--surface-2); border-radius:12px; margin-bottom:25px; }
+.patient-waitlist { max-width:760px; }
+.patient-waitlist .booking-card { margin-bottom:20px; }
+.patient-waitlist label { display:grid; gap:8px; margin:18px 0; }
+.waitlist-entry { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 0; border-top:1px solid var(--border); }
+.waitlist-entry > div { display:grid; gap:5px; }
+.waitlist-entry small { color:var(--muted); }
+.quick-reading, .patient-help { padding:26px; border:1px solid var(--border); border-radius:16px; box-shadow:none; }
+.quick-reading > div:first-child { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.quick-reading h2 { margin:0; }
+.reading-options { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.patient-help { margin-bottom:22px; }
+.patient-help summary { padding:10px 0; min-height:48px; font-size:1rem; }
+.patient-login { background:radial-gradient(ellipse at 95% 0%,#dcefeb,transparent 55%),var(--bg); padding:40px 20px; gap:32px; }
+.patient-login .brand { color:#153847; text-align:center; font-size:2rem; }
+.patient-login .brand > span { color:#087e7a; }
+.patient-login .brand small { display:block; font-size:.82rem; letter-spacing:.02em; color:#536779; font-weight:500; margin-top:2px; }
+.patient-login .login-card { width:min(630px,100%); padding:38px; border-radius:22px; box-shadow:0 16px 50px #1439470a; }
+.login-choices { display:grid; gap:14px; margin:28px 0; }
+.login-choice { display:flex; align-items:center; gap:15px; text-align:left; border:1px solid var(--border); padding:20px 18px; border-radius:14px; color:var(--text); background:var(--surface); }
+.login-choice.patient-choice { border:2px solid var(--primary); background:var(--primary-soft); }
+.login-choice:hover { box-shadow:0 0 0 2px var(--primary); }
+.login-choice strong { font-size:1.05rem; }
+.login-choice small { font-size:.87rem; color:var(--muted); }
+.login-demo { border-top:1px solid var(--border); padding-top:22px; display:flex; gap:10px; }
+.login-demo > svg { flex-shrink:0; margin-top:4px; color:var(--muted); }
+.login-demo p { font-size:.82rem; margin:0; line-height:1.7; }
+.toast { display:flex; gap:16px; align-items:center; max-width:min(540px,calc(100% - 30px)); padding:15px 18px; border:1px solid var(--border); }
+.toast button { border:0; background:transparent; color:inherit; font-size:1.5rem; min-width:44px; flex-shrink:0; }
+@media(min-width:851px) { .topbar .mobile-brand { display:block; margin-right:auto; color:var(--muted); font-size:.94rem; } }
+@media(max-width:1100px) { .patient-welcome { align-items:flex-start; flex-direction:column; gap:22px; } .patient-shortcuts { grid-template-columns:1fr; } }
+@media(max-width:850px) {
+  .app-shell { padding-bottom:calc(85px + env(safe-area-inset-bottom)); }
+  .topbar { height:74px; justify-content:space-between; }
+  .mobile-brand { font-size:1.15rem; }
+  .topbar-actions { gap:7px; }
+  .reading-shortcut { padding:8px; }
+  .reading-shortcut small { display:none; }
+  .patient-shell .content-wrap { padding-top:25px; width:calc(100% - 32px); }
+  .mobile-nav { display:grid; grid-auto-flow:initial; grid-auto-columns:initial; grid-template-columns:repeat(4,minmax(0,1fr)); overflow:visible; padding-bottom:env(safe-area-inset-bottom); min-height:74px; }
+  .mobile-nav button { min-width:0; min-height:74px; gap:3px; padding:9px 1px; position:relative; }
+  .mobile-nav button small { font-size:.72rem; font-weight:650; }
+  .mobile-nav button.active { color:var(--primary); background:var(--primary-soft); }
+  .mobile-nav button.active::before { content:''; position:absolute; top:0; height:3px; width:38px; background:var(--primary); border-radius:0 0 4px 4px; }
+  .patient-welcome { margin-bottom:28px; gap:20px; }
+  .patient-main-action { width:100%; }
+  .patient-main-action > svg:last-child { margin-left:auto; }
+  .patient-section-title { align-items:center; }
+  .patient-section-title h2 { font-size:1.18rem; }
+  .patient-section-title .patient-link { font-size:.82rem; flex-shrink:0; }
+  .patient-visit { padding:21px 18px; gap:15px; }
+  .visit-date { min-width:58px; }
+  .visit-date strong { font-size:1.65rem; }
+  .visit-date > span { padding:5px 8px; }
+  .patient-page-heading { flex-direction:column; align-items:stretch; gap:20px; margin-bottom:28px; }
+  .booking-card { padding:24px; }
+  .booking-top { margin-bottom:15px; }
+  .booking-top > span { display:none; }
+  .back-row { gap:9px; margin-bottom:20px; }
+  .back-row > span { display:none; }
+  .back-button { font-size:.85rem; }
+  .patient-more-grid { grid-template-columns:1fr; }
+}
+@media(max-width:480px) {
+  .patient-visit { display:block; }
+  .visit-date { display:none; }
+  .patient-visit-actions { display:grid; }
+  .patient-visit-actions .btn { width:100%; }
+  .patient-visit-actions summary { padding-top:6px; min-height:44px; }
+  .visit-summary > strong { font-size:1.12rem; }
+  .patient-shortcut { padding:18px 15px; gap:11px; }
+  .patient-shortcut > svg { width:18px; }
+  .booking-card { padding:22px 18px; }
+  .booking-steps { gap:8px; }
+  .booking-steps li { gap:5px; font-size:.78rem; }
+  .booking-steps li > span { width:24px; height:24px; }
+  .service-option { padding:16px 12px; gap:10px; }
+  .time-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+  .booking-review { padding:17px; }
+  .patient-confirm-actions { display:grid; }
+  .quick-reading, .patient-help { padding:22px 18px; }
+  .reading-options { display:grid; }
+  .waitlist-entry { flex-direction:column; align-items:stretch; gap:12px; }
+  .patient-login { padding:24px 16px; gap:24px; }
+  .patient-login .login-card { padding:25px 20px; }
+  .login-choice { padding:17px 12px; gap:10px; }
+  .login-choice strong { font-size:.98rem; }
+  .login-choice .shortcut-icon { min-width:35px; height:39px; }
+  .login-choice > svg { width:18px; }
+}
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+.sidebar .logout-button { background:#183c4c; color:#fff; border-color:#456371; }
+
+.topbar .user-pill .patient-avatar { display:grid; }
+
+.whatsapp-shell { height:min(720px,calc(100dvh - 220px)); min-height:430px; grid-template-rows:auto minmax(0,1fr) auto; }
+.whatsapp-shell:has(.report-panel) { height:auto; grid-template-rows:auto auto minmax(240px,1fr) auto; }
+.whatsapp-header { flex-wrap:wrap; gap:12px; }
+.whatsapp-header > div:first-child { min-width:0; }
+.whatsapp-header .link-button { min-height:44px; }
+.chat-header-actions .icon-action { width:auto; height:auto; min-height:44px; padding:8px 12px; border-radius:10px; font-size:.85rem; font-weight:600; }
+.message-form { grid-template-columns:minmax(0,1fr) auto; }
+.message-form input { min-width:0; border-radius:12px; }
+.message-form .send-button { width:auto; height:auto; padding:10px 15px; border-radius:12px; font-weight:700; }
+.chat-empty-hint { align-self:center; padding:20px; color:var(--muted); text-align:center; font-size:.95rem; }
+:root[data-theme="dark"] .send-button { color:#082b29; }
+@media(max-width:480px) { .whatsapp-header { padding:12px; } .whatsapp-header h2 { font-size:1.1rem; } .whatsapp-shell { min-height:450px; } }
