@@ -275,14 +275,16 @@ let patients = [
   { id: 103, name: "Carlos Henrique", birthDate: "1972-11-05", email: "carlos@example.com", phone: "", allergies: "Não informado" }
 ];
 let records = [];
+let waitlist = [];
 function snapshot() {
   return { doctorProfile, settingsByUser, appointments, conversations, notifications,
-    telemedicineRooms, reports, feedback, ratings, patients, records };
+    telemedicineRooms, reports, feedback, ratings, patients, records, waitlist };
 }
 function restore(d) {
   Object.assign(doctorProfile, d.doctorProfile);
   ({ settingsByUser, appointments, conversations, notifications, telemedicineRooms,
     reports, feedback, ratings, patients, records } = d);
+  waitlist = d.waitlist || [];
   users.doctor.name = doctorProfile.name;
   users.doctor.crm = doctorProfile.crm;
 }
@@ -293,7 +295,7 @@ function persist() {
 }
 if (fs.existsSync(DATA_FILE)) {
   const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-  if (!Object.keys(snapshot()).every(key => key in data)) throw new Error("Arquivo de dados incompleto. Restaure o backup.");
+  if (!Object.keys(snapshot()).filter(key => key !== "waitlist").every(key => key in data)) throw new Error("Arquivo de dados incompleto. Restaure o backup.");
   restore(data);
 } else {
   // Relative fixture dates keep the initial demonstration useful.
@@ -383,14 +385,16 @@ app.patch("/api/appointments/:id", doctorOnly, (req, res) => {
     const next = { ...a, startsAt: req.body.startsAt, durationMinutes: req.body.durationMinutes, service: req.body.service };
     const error = scheduleError(next, a.id);
     if (error) return res.status(409).json({ message: error });
+    const released = { ...a };
     Object.assign(a, { startsAt: new Date(next.startsAt).toISOString(), durationMinutes: Number(next.durationMinutes), service: clean(next.service) });
+    notifyReleasedSlot(released);
   } else {
     const transitions = { CONFIRMED: ["IN_PROGRESS", "CANCELLED"], IN_PROGRESS: ["COMPLETED"] };
     if (!(transitions[a.status] || []).includes(req.body.status)) return res.status(409).json({ message: "Mudança de status inválida." });
     if (req.body.status === "COMPLETED" && !records.some(r => r.appointmentId === a.id && r.summary.trim())) return res.status(400).json({ message: "Salve o resumo do atendimento antes de concluir." });
     if (req.body.status === "CANCELLED" && !clean(req.body.reason)) return res.status(400).json({ message: "Informe o motivo do cancelamento." });
     a.status = req.body.status;
-    if (a.status === "CANCELLED") a.cancellationReason = clean(req.body.reason);
+    if (a.status === "CANCELLED") { a.cancellationReason = clean(req.body.reason); notifyReleasedSlot(a); }
     if (["COMPLETED", "CANCELLED"].includes(a.status)) {
       telemedicineRooms.filter(r => r.appointmentId === a.id && r.status === "OPEN").forEach(r => {
         r.status = "ENDED"; r.endedAt = new Date().toISOString();
@@ -402,6 +406,98 @@ app.patch("/api/appointments/:id", doctorOnly, (req, res) => {
   io.emit("appointments:updated");
   res.json(a);
 });
+
+// Patient demonstration: one fictitious doctor, Monday–Friday, 09:00–17:00 in São Paulo.
+// This role header is a demo gate, not authentication. Never use real patient data here.
+function patientOnly(req, res, next) {
+  if (req.get("X-Demo-Role") !== "PATIENT") return res.status(403).json({ message: "Entre na área do paciente para continuar." });
+  next();
+}
+function clinicDay(value = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
+}
+function offeredSlots(service, exceptId) {
+  const today = clinicDay();
+  const slots = [];
+  for (let offset = 1; offset <= 21; offset++) {
+    const date = new Date(today + "T12:00:00Z");
+    date.setUTCDate(date.getUTCDate() + offset);
+    if ([0, 6].includes(date.getUTCDay())) continue;
+    const day = date.toISOString().slice(0, 10);
+    for (let hour = 9; hour <= 16; hour++) {
+      const startsAt = new Date(`${day}T${String(hour).padStart(2, "0")}:00:00-03:00`).toISOString();
+      if (!scheduleError({ startsAt, durationMinutes: service.durationMinutes, service: service.title }, exceptId)) slots.push({ startsAt, day, period: hour < 12 ? "morning" : "afternoon" });
+    }
+  }
+  return slots;
+}
+function notifyReleasedSlot(appointment) {
+  if (Date.parse(appointment.startsAt) <= Date.now()) return;
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", hourCycle: "h23" }).format(new Date(appointment.startsAt)));
+  const period = hour < 12 ? "morning" : "afternoon";
+  const service = doctorProfile.services.find(s => s.title === appointment.service);
+  if (!service || !offeredSlots(service).some(slot => slot.startsAt === appointment.startsAt)) return;
+  waitlist.filter(entry => entry.service === appointment.service && (entry.period === "any" || entry.period === period)).forEach(entry => {
+    entry.lastNotifiedAt = new Date().toISOString();
+    pushNotification(entry.patientId, "appointments", "Um horário foi liberado", `Há uma nova possibilidade para ${entry.service}. Abra a fila de espera para consultar os horários. A vaga depende da confirmação.`);
+  });
+}
+app.get("/api/patient/availability", patientOnly, (req, res) => {
+  const service = doctorProfile.services.find(s => s.id === Number(req.query.serviceId));
+  if (!service) return res.status(400).json({ message: "Escolha um tipo de consulta." });
+  const own = appointments.find(a => a.id === Number(req.query.appointmentId) && a.patientId === users.patient.id && a.status === "CONFIRMED");
+  res.json({ timeZone: "America/Sao_Paulo", slots: offeredSlots(service, own?.id) });
+});
+app.post("/api/patient/appointments", patientOnly, (req, res) => {
+  const service = doctorProfile.services.find(s => s.id === Number(req.body.serviceId));
+  if (!service) return res.status(400).json({ message: "Escolha um tipo de consulta." });
+  const changing = req.body.appointmentId !== undefined;
+  const previous = appointments.find(a => a.id === Number(req.body.appointmentId) && a.patientId === users.patient.id);
+  if (changing && !previous) return res.status(404).json({ message: "Consulta não encontrada." });
+  if (previous && (previous.status !== "CONFIRMED" || Date.parse(previous.startsAt) <= Date.now())) return res.status(409).json({ message: "Esta consulta já não pode ser reagendada pelo aplicativo." });
+  const startsAt = clean(req.body.startsAt);
+  if (!offeredSlots(service, previous?.id).some(slot => slot.startsAt === startsAt)) return res.status(409).json({ message: "Esse horário não está mais disponível. Escolha outro para continuar." });
+  const released = previous ? { ...previous } : null;
+  const appointment = previous || { id: Math.max(Date.now(), ...appointments.map(a => a.id + 1)), patientId: users.patient.id, patientName: users.patient.name, doctorId: 1, doctorName: doctorProfile.name, conversationId: null, telemedicineRoomId: null };
+  Object.assign(appointment, { service: service.title, startsAt, durationMinutes: service.durationMinutes, status: "CONFIRMED" });
+  if (!previous) appointments.push(appointment);
+  if (released) notifyReleasedSlot(released);
+  waitlist = waitlist.filter(entry => !(entry.patientId === users.patient.id && entry.service === service.title));
+  pushNotification(users.patient.id, "appointments", previous ? "Consulta reagendada" : "Consulta confirmada", "A data e o horário estão em Minhas consultas.");
+  pushNotification(1, "appointments", previous ? "Paciente reagendou uma consulta" : "Nova consulta agendada", "Confira a agenda médica.");
+  io.emit("appointments:updated");
+  res.status(previous ? 200 : 201).json(appointment);
+});
+app.post("/api/patient/appointments/:id/cancel", patientOnly, (req, res) => {
+  const appointment = appointments.find(a => a.id === Number(req.params.id) && a.patientId === users.patient.id);
+  if (!appointment) return res.status(404).json({ message: "Consulta não encontrada." });
+  if (appointment.status !== "CONFIRMED" || Date.parse(appointment.startsAt) <= Date.now()) return res.status(409).json({ message: "Esta consulta já não pode ser cancelada pelo aplicativo." });
+  appointment.status = "CANCELLED";
+  appointment.cancellationReason = "Cancelada pelo paciente";
+  telemedicineRooms.filter(r => r.appointmentId === appointment.id && r.status === "OPEN").forEach(r => {
+    r.status = "ENDED"; r.endedAt = new Date().toISOString();
+    io.to(`call:${r.id}`).emit("call:ended", { roomId: r.id });
+  });
+  notifyReleasedSlot(appointment);
+  pushNotification(users.patient.id, "appointments", "Consulta cancelada", "O horário foi liberado. Você pode marcar uma nova consulta quando quiser.");
+  pushNotification(1, "appointments", "Paciente cancelou uma consulta", "O horário está disponível para outro atendimento.");
+  io.emit("appointments:updated");
+  res.json(appointment);
+});
+app.get("/api/patient/waitlist", patientOnly, (_, res) => res.json(waitlist.filter(e => e.patientId === users.patient.id)));
+app.post("/api/patient/waitlist", patientOnly, (req, res) => {
+  const service = doctorProfile.services.find(s => s.id === Number(req.body.serviceId));
+  if (!service || !["any", "morning", "afternoon"].includes(req.body.period)) return res.status(400).json({ message: "Escolha a consulta e o período de preferência." });
+  let entry = waitlist.find(e => e.patientId === users.patient.id && e.serviceId === service.id);
+  if (!entry) { entry = { id: Math.max(Date.now(), ...waitlist.map(e => e.id + 1)), patientId: users.patient.id, serviceId: service.id, service: service.title, createdAt: new Date().toISOString() }; waitlist.push(entry); }
+  entry.period = req.body.period;
+  res.status(201).json(entry);
+});
+app.delete("/api/patient/waitlist/:id", patientOnly, (req, res) => {
+  waitlist = waitlist.filter(e => !(e.patientId === users.patient.id && e.id === Number(req.params.id)));
+  res.json({ ok: true });
+});
+
 app.get("/api/records", doctorOnly, (_, res) => res.json(records));
 app.put("/api/records/:appointmentId", doctorOnly, (req, res) => {
   const a = appointments.find(a => a.id === Number(req.params.appointmentId));
@@ -948,3 +1044,4 @@ io.on("connection", (socket) => {
 server.listen(PORT, () => {
   console.log(`MediSync API + Socket.IO em http://localhost:${PORT}`);
 });
+
