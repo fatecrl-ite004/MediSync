@@ -1,5 +1,18 @@
 # Validação do MediSync
 
+## Simplificação no PC em 5 de novembro de 2026
+
+- Build TypeScript/Vite aprovado; dois testes de integração do backend aprovados e três testes do frontend aprovados.
+- Painel médico: no mesmo cenário de demonstração, dez botões no conteúdo passaram a dois e nove itens de navegação passaram a cinco.
+- Listas: primeiro lote com seis consultas, expansão conferida com nove consultas do paciente e onze do médico em cenário local temporário. Dados adicionais de lista longa removidos após a verificação.
+- Navegador: cadastro fictício, agenda, início e conclusão, resumo obrigatório, registro somente leitura, reagendamento do paciente, opção de manter a consulta ao cancelar, conversa e retorno à agenda, acesso à fila por Mais opções.
+- Busca sem acentos, filtros de status/data e visualizações Próximas, Hoje e Histórico conferidos.
+- Teclado: seções expansíveis dos detalhes alcançáveis com Tab; Escape fecha e devolve o foco ao botão de origem.
+- Larguras da agenda: 320, 390, 768, 1024 e 1280 px sem transbordamento horizontal nas telas verificadas. Texto ampliado, alto contraste e tema noturno conferidos em 320 px; menu/saída acessíveis em janela de 600 px de altura.
+- Calendário: geração `.ics` validada em testes para fuso, duração, texto, quebras UTF-8 e entradas inválidas. O botão exibiu confirmação de arquivo preparado, mas a captura do download no navegador gerenciado não foi confirmada. A importação em calendários externos permanece pendente.
+
+O detalhamento e os limites estão em [Simplificação no PC](docs/SIMPLICIDADE-NO-PC.md). A API e seus dados não foram alterados por esta revisão de código. Não há alegação de testes em aparelhos físicos ou com participantes, nem de prontidão clínica.
+
 ## Revisão da experiência do paciente em 31 de outubro de 2026
 
 Validação com dados fictícios em Node.js 24.22.1, TypeScript estrito e Chromium. O código parte da v0.5 do repositório e preserva os fluxos médicos.
