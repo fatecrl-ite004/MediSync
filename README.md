@@ -8,6 +8,10 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e te
 
 ## Funcionalidades
 
+- PC com início focado na próxima consulta, menu reduzido e ações abertas nos detalhes de cada atendimento.
+- Agenda médica com Próximas, Hoje e Histórico, filtros sob demanda e listas em lotes de seis.
+- Arquivo de calendário `.ics` para consultas futuras confirmadas do paciente; importação manual, sem sincronização automática.
+
 - Área do paciente com próxima consulta em destaque e agendamento em três etapas: consulta, horário e confirmação.
 - Reagendamento e cancelamento pelo paciente, com revisão e confirmação antes de liberar a vaga.
 - Fila de espera por tipo de consulta e período; avisos dentro do aplicativo quando um horário compatível é liberado. A vaga depende da confirmação, sem reserva exclusiva.
@@ -181,9 +185,9 @@ Na interface:
 
 1. Escolha **Sou paciente** (João Silva) e toque em **Agendar consulta**.
 2. Escolha o atendimento, o dia e o horário; confira os detalhes e confirme.
-3. Em **Consultas**, abra **Alterar consulta** para reagendar ou testar a confirmação de cancelamento.
-4. Abra **Mais → Fila de espera** no celular (ou o menu lateral no computador), salve uma preferência e confira sua permanência após sair e entrar.
-5. Saia da demonstração e escolha **Sou profissional de saúde** (Dra. Ana). Em **Consultas**, confira a mesma agenda. Cadastre um paciente fictício, inicie um atendimento, salve o resumo e conclua para verificar o histórico.
+3. Em **Consultas**, abra **Ver detalhes** para reagendar. O cancelamento fica em **Não vou conseguir comparecer**, seguido de confirmação.
+4. Abra **Mais → Fila de espera** no celular ou **Mais opções → Fila de espera** no computador, salve uma preferência e confira sua permanência após sair e entrar.
+5. Saia da demonstração e escolha **Sou profissional de saúde** (Dra. Ana). Em **Consultas**, confira a mesma agenda. Para cadastrar alguém, use **Pacientes → Cadastrar paciente**. Agende uma consulta fictícia, abra seus detalhes, inicie o atendimento, salve o resumo e conclua. Use **Histórico** para conferir o registro.
 
 A agenda de demonstração do paciente oferece horários futuros nos próximos 21 dias, de segunda a sexta, das 09h às 17h, no horário de Brasília. O catálogo tem uma médica fictícia e três tipos de consulta. Não há feriados, convênios, pagamentos ou múltiplas clínicas configurados.
 
@@ -217,9 +221,17 @@ npm.cmd --prefix backend test
 
 Os testes de integração cobrem cadastro e validações, restrição de papel nas rotas médicas adicionadas, conflitos de agenda, reagendamento, cancelamento, início e conclusão, registro obrigatório, bloqueio de edição após conclusão e persistência após reiniciar.
 
-Os testes usam APIs nas portas **3198** e **3199**, arquivos temporários e encerram os processos ao terminar; não altera o arquivo de dados da demonstração. As duas portas devem estar livres durante os testes. O fluxo do paciente também verifica duas confirmações concorrentes para a mesma vaga, proteção das consultas de outros pacientes, avisos da fila, persistência e abertura de um arquivo da v0.5 sem o campo de fila.
+Os testes usam APIs nas portas **3198** e **3199**, arquivos temporários e encerram os processos ao terminar; não alteram o arquivo de dados da demonstração. As duas portas devem estar livres durante os testes. O fluxo do paciente também verifica duas confirmações concorrentes para a mesma vaga, proteção das consultas de outros pacientes, avisos da fila, persistência e abertura de um arquivo da v0.5 sem o campo de fila.
 
-O frontend não possui um script de testes automatizados. Utilize `npm.cmd --prefix frontend run build` para verificar a compilação e siga o roteiro de instalação para a conferência manual das telas. Os resultados anteriores e os limites da validação estão em [VALIDACAO.md](VALIDACAO.md).
+O frontend agora tem testes para o arquivo de calendário, executados com o Node.js 24 indicado nos pré-requisitos:
+
+```powershell
+npm.cmd --prefix frontend test
+```
+
+São três testes que cobrem datas, duração, identidade do evento, caracteres especiais, quebra de linhas UTF-8 e entradas inválidas. Não dependem de conta de calendário nem de conexão externa. Eles não substituem a conferência de importação no calendário do dispositivo.
+
+Utilize `npm.cmd --prefix frontend run build` para verificar a compilação. Os resultados e limites da validação estão em [VALIDACAO.md](VALIDACAO.md).
 
 ### Solução de problemas
 
@@ -279,6 +291,8 @@ O [repositório público](https://github.com/fatecrl-ite004/MediSync) disponibil
 | [frontend/src/App.tsx](frontend/src/App.tsx) | Telas principais, navegação e comunicação com a API. |
 | [frontend/src/DoctorWorkspace.tsx](frontend/src/DoctorWorkspace.tsx) | Agenda, pacientes e registros de atendimento. |
 | [frontend/src/PatientExperience.tsx](frontend/src/PatientExperience.tsx) | Início do paciente, agendamento, alterações e fila de espera. |
+| [frontend/src/simplicity.css](frontend/src/simplicity.css) | Navegação, listas compactas e detalhes sob demanda. |
+| [frontend/src/calendar.ts](frontend/src/calendar.ts) e [frontend/tests/calendar.test.mjs](frontend/tests/calendar.test.mjs) | Arquivo de calendário e testes do formato. |
 | [frontend/src/patient.css](frontend/src/patient.css) | Layout, leitura e navegação responsiva. |
 | [frontend/vite.config.ts](frontend/vite.config.ts) | Proxy da API e do Socket.IO para desenvolvimento e prévia local. |
 | [docs/README.md](docs/README.md) | Índice das referências e decisões do projeto. |
@@ -304,6 +318,7 @@ Consulte a [Wiki do MediSync](https://github.com/fatecrl-ite004/MediSync/wiki) p
 
 - [Índice da documentação](docs/README.md): referências, marketing e decisões de experiência.
 - [Plano de marketing](docs/PLANO-DE-MARKETING.md): transcrição do material enviado, com original preservado.
+- [Simplificação no PC](docs/SIMPLICIDADE-NO-PC.md): organização das telas, calendário, validação e próximos passos.
 - [Decisões da experiência do usuário](docs/EXPERIENCIA-DO-USUARIO.md): fluxos, limites e roteiro de avaliação.
 - [Registro de validação](VALIDACAO.md): verificações documentadas do protótipo.
 - [Modelo inicial de dados](MER/MER.jpeg): diagrama disponível no repositório.

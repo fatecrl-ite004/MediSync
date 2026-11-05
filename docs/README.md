@@ -8,8 +8,9 @@ Este índice reúne os materiais disponíveis e relaciona a proposta acadêmica 
 | [Wiki e apresentação da P1](https://github.com/fatecrl-ite004/MediSync/wiki) | Problema, objetivos, participantes, proposta inicial e arquitetura | Referência da P1; pode conter planos anteriores |
 | [Plano de marketing em Markdown](PLANO-DE-MARKETING.md) | Consulta e busca do conteúdo fornecido pelo grupo | Transcrição textual; sem alteração das afirmações originais |
 | [Plano de marketing original](Plano-de-Marketing-MediSync.docx) | Preservar o arquivo recebido | Original, sem edição |
-| [Experiência do usuário](EXPERIENCIA-DO-USUARIO.md) | Percursos, decisões, alinhamento com marketing e avaliação | Registro desta revisão |
+| [Experiência do usuário](EXPERIENCIA-DO-USUARIO.md) | Percursos, decisões, alinhamento com marketing e avaliação | Base de 31/10/2026; navegação atual em [Simplificação no PC](SIMPLICIDADE-NO-PC.md) |
 | [Modelo inicial de dados](../MER/MER.jpeg) | Referência conceitual do banco planejado | O protótipo atual usa JSON, sem migrações SQL |
+| [Simplificação no PC](SIMPLICIDADE-NO-PC.md) | Menu, próxima consulta, agenda compacta e calendário | Revisão de 05/11/2026 |
 | [Validação](../VALIDACAO.md) | Evidências técnicas e limites dos testes | Atualizado com os cenários do paciente |
 
 ## Divergências que o grupo precisa revisar
