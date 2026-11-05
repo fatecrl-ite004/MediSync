@@ -170,6 +170,7 @@ export default function App() {
   const [page, setPageRaw] = useState<Page>("dashboard");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [records, setRecords] = useState<ClinicalRecord[]>([]);
+  const [selectedVisitId, setSelectedVisitId] = useState<number | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [profileEditing, setProfileEditing] = useState(false);
   const [history, setHistory] = useState<{ page: Page; conversation: Conversation | null; patientId: number | null; scroll: number }[]>([]);
@@ -446,6 +447,7 @@ export default function App() {
     if (page !== "booking") remember();
     setCurrentConversation(null);
     setSelectedPatient(null);
+    setSelectedVisitId(null);
     setPageRaw(target);
     window.scrollTo(0, 0);
   }
@@ -454,6 +456,7 @@ export default function App() {
     const previous = history[history.length - 1];
     setHistory(old => old.slice(0, -1));
     setPageRaw(previous?.page || "dashboard");
+    setSelectedVisitId(null);
     const conversation = previous?.conversation;
     setCurrentConversation(conversation ? conversations.find(c => c.id === conversation.id) || conversation : null);
     setSelectedPatient(previous?.patientId || null);
@@ -986,7 +989,7 @@ export default function App() {
   }
 
   const doctorNav: [Page, string, string][] = [
-    ["dashboard", "⌂", "Painel"],
+    ["dashboard", "⌂", "Início"],
     ["profile", "◉", "Perfil"],
     ["appointments", "▣", "Consultas"],
     ["patients", "♧", "Pacientes"],
@@ -1013,195 +1016,21 @@ export default function App() {
     (item) => ["CONFIRMED", "IN_PROGRESS"].includes(item.status)
   ).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
 
+  function openDoctorVisit(id: number) {
+    setPage("appointments"); setSelectedVisitId(id);
+  }
   function renderDashboard() {
     if (!user || !settings) return null;
     if (user.role === "PATIENT") return renderPatient("dashboard");
-
-    return (
-      <>
-        <section className="hero card">
-          <div>
-            <span className="eyebrow">Área médica</span>
-            <h1 tabIndex={-1}>Consultas, mensagens e telemedicina em um só fluxo.</h1>
-            <p>
-              O painel prioriza as próximas consultas e deixa a comunicação
-              disponível sem misturar as responsabilidades do médico.
-            </p>
-          </div>
-          <button
-            className="btn"
-            onClick={() => setPage("profile")}
-          >
-            Ver meu perfil
-          </button>
-        </section>
-
-        <div className="doctor-dashboard">
-          <aside className="card mini-profile">
-            <img src={profile.profilePhoto} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/avatar-medica.svg"; }} alt={`Foto de ${profile.name}`} />
-            <h2>{profile.name}</h2>
-            <p>{profile.headline}</p>
-            <span>{profile.crm}</span>
-            <button
-              className="btn full"
-              onClick={() => setPage("profile")}
-            >
-              Perfil profissional
-            </button>
-          </aside>
-
-          <section>
-            <div className="section-title compact">
-              <div>
-                <span className="eyebrow">Lembretes</span>
-                <h2>Consultas marcadas</h2>
-              </div>
-              <span className="count-badge">
-                {upcomingAppointments.length}
-              </span>
-            </div>
-
-            <div className="stack">
-              {upcomingAppointments.map((appointment) => (
-                <article
-                  className="card appointment-card"
-                  key={appointment.id}
-                >
-                  <div className="date-chip">
-                    <strong>
-                      {new Date(appointment.startsAt).getDate()}
-                    </strong>
-                    <span>
-                      {new Date(appointment.startsAt).toLocaleDateString(
-                        "pt-BR",
-                        { month: "short" }
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="appointment-copy">
-                    <strong>{appointment.patientName}</strong>
-                    <span>{appointment.service}</span>
-                    <small>{formatDate(appointment.startsAt)}</small>
-                  </div>
-
-                  <div className="actions">
-                    {appointment.conversationId ? (
-                      <button
-                        className="btn"
-                        onClick={() =>
-                          openConversation(appointment.conversationId!)
-                        }
-                      >
-                        Chat
-                      </button>
-                    ) : (
-                      <button
-                        className="btn"
-                        disabled={settings.chatMode === "HIDDEN"}
-                        onClick={() =>
-                          startConversation(appointment.id)
-                        }
-                      >
-                        Iniciar chat
-                      </button>
-                    )}
-
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        setPage("telemedicine");
-                      }}
-                    >
-                      Telemedicina
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="section-title chats-title">
-              <div>
-                <span className="eyebrow">Histórico</span>
-                <h2>Chats recentes</h2>
-              </div>
-            </div>
-
-            {settings.chatMode === "HIDDEN" ? (
-              <div className="card empty-state">
-                <strong>Chat oculto</strong>
-                <p>
-                  Conversas ficam indisponíveis enquanto este modo estiver
-                  ativo.
-                </p>
-              </div>
-            ) : (
-              <div className="stack">
-                {sortedConversations.map((conversation) => {
-                  const last =
-                    conversation.messages[
-                      conversation.messages.length - 1
-                    ];
-
-                  return (
-                    <button
-                      className="card conversation-preview"
-                      key={conversation.id}
-                      onClick={() =>
-                        openConversation(conversation.id)
-                      }
-                    >
-                      <span className="avatar">
-                        {conversation.patientName.charAt(0)}
-                      </span>
-                      <span className="conversation-copy">
-                        <strong>{conversation.patientName}</strong>
-                        <small>
-                          {last?.content || "Conversa sem mensagens"}
-                        </small>
-                      </span>
-                      <time>
-                        {new Date(
-                          conversation.updatedAt
-                        ).toLocaleDateString("pt-BR")}
-                      </time>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <aside className="card summary-panel">
-            <span className="eyebrow">Resumo</span>
-            <div>
-              <strong>{upcomingAppointments.length}</strong>
-              <span>consultas em aberto</span>
-            </div>
-            <div>
-              <strong>{sortedConversations.length}</strong>
-              <span>conversas</span>
-            </div>
-            <div>
-              <strong>
-                {rooms.filter((room) => room.status === "OPEN").length}
-              </strong>
-              <span>salas abertas</span>
-            </div>
-            <div className="policy-box">
-              <span>Chat atual</span>
-              <strong>
-                {settings.chatMode === "OPEN"
-                  ? "Aberto"
-                  : settings.chatMode === "HIDDEN"
-                  ? "Oculto"
-                  : "Prioritário"}
-              </strong>
-            </div>
-          </aside>
-        </div>
-      </>
-    );
+    const next = appointments.filter(a => a.status === "IN_PROGRESS" || a.status === "CONFIRMED" && Date.parse(a.startsAt) >= Date.now()).sort((a, b) => (a.status === "IN_PROGRESS" ? 0 : 1) - (b.status === "IN_PROGRESS" ? 0 : 1) || Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
+    const today = new Date().toLocaleDateString("pt-BR");
+    const todayCount = appointments.filter(a => ["CONFIRMED", "IN_PROGRESS"].includes(a.status) && new Date(a.startsAt).toLocaleDateString("pt-BR") === today).length;
+    return <section className="calm-doctor-home">
+      <header className="calm-heading"><div><span className="eyebrow">Área médica</span><h1 tabIndex={-1}>Olá, {user.name.split(" ").slice(0, 2).join(" ")}.</h1><p>{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p></div><button className="btn" onClick={() => setPage("appointments")}>Ver agenda<UiIcon name="arrow" size={18} /></button></header>
+      <div className="calm-home-caption"><h2>{next?.status === "IN_PROGRESS" ? "Em atendimento" : "Seu próximo atendimento"}</h2><span>{todayCount ? `${todayCount} ${todayCount === 1 ? "consulta hoje" : "consultas hoje"}` : "Sem consultas para hoje"}</span></div>
+      {next ? <article className="card calm-focus-card"><div className="calm-focus-top"><span className={`status status-${next.status.toLowerCase()}`}>{statusLabel[next.status]}</span><span>{new Date(next.startsAt).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</span></div><div className="calm-focus-main"><div><time dateTime={next.startsAt} className="calm-focus-time">{new Date(next.startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</time><h3>{next.patientName}</h3><p>{next.service}</p></div><button className="btn primary" onClick={() => openDoctorVisit(next.id)}>{next.status === "IN_PROGRESS" ? "Continuar atendimento" : "Abrir consulta"}<UiIcon name="arrow" size={19} /></button></div></article> : <section className="card patient-empty"><UiIcon name="appointments" size={32} /><h2>Nenhum atendimento pendente</h2><p>Abra a agenda para consultar outras datas ou marcar uma consulta.</p></section>}
+      <p className="calm-home-note">Os detalhes e as ações de cada atendimento ficam dentro da consulta.</p>
+    </section>;
   }
 
   function renderProfile() {
@@ -2099,7 +1928,7 @@ export default function App() {
 
   function renderDoctorWorkspace(mode: "appointments" | "patients") {
     return <DoctorWorkspace key={mode} mode={mode} appointments={appointments} patients={patients} records={records} profile={profile} request={doctorRequest} refresh={refreshDoctor}
-      selectedPatient={selectedPatient} onPatient={openPatient}
+      selectedPatient={selectedPatient} onPatient={openPatient} initialVisitId={mode === "appointments" ? selectedVisitId : null} chatEnabled={settings?.chatMode !== "HIDDEN"}
       onChat={a => a.conversationId ? openConversation(a.conversationId) : startConversation(a.id)}
       onCall={a => { const room = rooms.find(r => r.appointmentId === a.id && r.status === "OPEN"); room ? enterRoom(room) : createRoom(a.id, "VIDEO"); }}
       onRate={a => { setRatingAppointment(appointments.find(v => v.id === a.id)!); setRatingStars(5); setRatingComment(""); }} />;
@@ -2117,12 +1946,16 @@ export default function App() {
       onCall={a => { const room = rooms.find(r => r.id === a.telemedicineRoomId && r.status === "OPEN"); if (room) enterRoom(room); else setToast("A sala ainda não está disponível. Aguarde a médica liberar a chamada."); }}
       onRate={a => { setRatingAppointment(a); setRatingStars(5); setRatingComment(""); }} />;
   }
-  const mobileNav: [Page, string][] = user.role === "PATIENT" ? [["dashboard", "Início"], ["appointments", "Consultas"], ["messages", "Mensagens"], ["more", "Mais"]] : [["dashboard", "Painel"], ["appointments", "Consultas"], ["patients", "Pacientes"], ["more", "Mais"]];
+  const mobileNav: [Page, string][] = user.role === "PATIENT" ? [["dashboard", "Início"], ["appointments", "Consultas"], ["messages", "Mensagens"], ["more", "Mais"]] : [["dashboard", "Início"], ["appointments", "Consultas"], ["patients", "Pacientes"], ["more", "Mais"]];
+  const desktopNav: [Page, string][] = user.role === "PATIENT" ? [["dashboard", "Início"], ["appointments", "Consultas"], ["messages", "Mensagens"], ["more", "Mais opções"]] : [["dashboard", "Início"], ["appointments", "Consultas"], ["patients", "Pacientes"], ["messages", "Mensagens"], ["more", "Mais opções"]];
+  const currentLabel = page === "more" ? "Mais opções" : page === "booking" ? "Agendar consulta" : page === "telemedicine" ? "Chamadas" : nav.find(([key]) => key === page)?.[2] || "Início";
   function renderMore() {
-    return <section className="patient-experience"><header className="patient-page-heading"><div><span className="eyebrow">Do seu jeito</span><h1 tabIndex={-1}>Ajuda e opções</h1><p>Ajuste sua leitura ou encontre o que precisa.</p></div></header>
-      <section className="card quick-reading"><div><UiIcon name="help" /><h2>Mais conforto para ler</h2></div><div className="reading-options"><button className="btn" aria-pressed={settings!.largerText} onClick={() => saveSettings({ largerText: !settings!.largerText })}>A+ Texto maior</button><button className="btn" aria-pressed={settings!.highContrast} onClick={() => saveSettings({ highContrast: !settings!.highContrast })}>Alto contraste</button><button className="btn" aria-pressed={settings!.theme === "dark"} onClick={() => saveSettings({ theme: settings!.theme === "dark" ? "light" : "dark" })}>Tema noturno</button></div><button className="patient-link" onClick={() => setPage("settings")}>Mais ajustes de acessibilidade</button></section>
-      <div className="patient-more-grid">{(user!.role === "PATIENT" ? [["waitlist", "Fila de espera", "Receba avisos de horários liberados."], ["notifications", "Avisos", "Acompanhe novidades das suas consultas."], ["telemedicine", "Chamadas", "Veja as salas liberadas pela médica."], ["settings", "Configurações", "Notificações, leitura e suporte."]] : doctorNav.filter(([key]) => !mobileNav.some(([m]) => m === key)).map(([key, , label]) => [key, label, "Abrir " + label.toLowerCase()])).map(([key, label, description]) => <button className="card patient-shortcut" key={key} onClick={() => setPage(key as Page)}><span className="shortcut-icon"><UiIcon name={key} /></span><span><strong>{label}</strong><small>{description}</small></span><UiIcon name="arrow" /></button>)}</div>
-      <section className="card patient-help"><h2>Como usar o MediSync</h2><details><summary>Como marcar uma consulta?</summary><p>Toque em Agendar consulta. Escolha o tipo de atendimento, o dia e o horário. Confira os detalhes e toque em Confirmar consulta. A confirmação aparece na tela e em Minhas consultas.</p></details><details><summary>Como mudar ou cancelar uma consulta?</summary><p>Abra Consultas e toque em Alterar consulta. Reagendar permite escolher outro horário. Cancelar consulta pede uma confirmação antes de liberar a vaga.</p></details><details><summary>Como funciona a fila de espera?</summary><p>Salve o tipo de consulta e o período que prefere. Quando um horário compatível for liberado, o aplicativo poderá avisar você. Mantenha os avisos de consultas ativados. O aviso não reserva a vaga: confira os horários e conclua o agendamento.</p></details><details><summary>Como falar com a médica?</summary><p>Abra sua consulta e toque em Conversar com a médica. A conversa fica na aba Mensagens. Esse canal não garante resposta imediata. As chamadas ficam disponíveis quando a médica liberar uma sala.</p></details><p className="patient-demo-note">Protótipo acadêmico com dados fictícios. Nenhum atendimento real é realizado neste ambiente.</p></section><button className="btn logout-button" onClick={logout}>Sair da demonstração</button>
+    const options: [Page, string, string][] = user!.role === "PATIENT" ? [["waitlist", "Fila de espera", "Preferências e horários liberados"], ["notifications", "Avisos", "Atualizações das suas consultas"], ["telemedicine", "Chamadas", "Salas liberadas pela médica"], ["settings", "Configurações", "Leitura, notificações e suporte"]] : [["profile", "Meu perfil", "Informações profissionais"], ["telemedicine", "Chamadas", "Salas de atendimento"], ["notifications", "Avisos", "Atualizações do aplicativo"], ["settings", "Configurações", "Leitura, notificações e suporte"]];
+    return <section className="patient-experience calm-options"><header className="calm-heading"><div><span className="eyebrow">Do seu jeito</span><h1 tabIndex={-1}>Mais opções</h1><p>Encontre os recursos que você usa de vez em quando.</p></div></header>
+      <div className="card calm-option-list">{options.map(([key, label, description]) => <button className="calm-option-row" key={key} onClick={() => setPage(key)}><span className="shortcut-icon"><UiIcon name={key} /></span><span><strong>{label}</strong><small>{description}</small></span><UiIcon name="arrow" size={18} /></button>)}{user!.role === "DOCTOR" && <button className="calm-option-row mobile-only-option" onClick={() => setPage("messages")}><span className="shortcut-icon"><UiIcon name="messages" /></span><span><strong>Mensagens</strong><small>Conversas com seus pacientes</small></span><UiIcon name="arrow" size={18} /></button>}</div>
+      <details className="card calm-reading"><summary>Leitura e acessibilidade</summary><p>Ajuste a aparência para ler com conforto.</p><div className="reading-options"><button className="btn" aria-pressed={settings!.largerText} onClick={() => saveSettings({ largerText: !settings!.largerText })}>A+ Texto maior</button><button className="btn" aria-pressed={settings!.highContrast} onClick={() => saveSettings({ highContrast: !settings!.highContrast })}>Alto contraste</button><button className="btn" aria-pressed={settings!.theme === "dark"} onClick={() => saveSettings({ theme: settings!.theme === "dark" ? "light" : "dark" })}>Tema noturno</button></div><button className="patient-link" onClick={() => setPage("settings")}>Mais ajustes de acessibilidade</button></details>
+      <details className="card calm-help"><summary>Ajuda para usar</summary><div className="calm-help-content"><h2>Marcar ou alterar uma consulta</h2><p>Toque em Agendar consulta. Escolha o atendimento, o dia e o horário. Confira antes de confirmar. Para alterar, abra Consultas e depois Ver detalhes. O cancelamento fica em Não vou conseguir comparecer e pede uma confirmação.</p><h2>Guardar no calendário</h2><p>Abra os detalhes de uma consulta futura e toque em Adicionar ao calendário. Abra o arquivo no calendário que você utiliza. Se reagendar, atualize também o evento no seu calendário.</p><h2>Fila de espera e mensagens</h2><p>Salve a consulta e o período desejados na fila de espera. O aviso de vaga não é uma reserva: confira o horário e confirme o agendamento. Para conversar, abra os detalhes da consulta e escolha Conversar com a médica. As respostas podem não ser imediatas.</p>{user!.role === "DOCTOR" && <><h2>Organizar o atendimento</h2><p>Na agenda, use Próximas, Hoje ou Histórico. Abra uma consulta para iniciar ou registrar o atendimento. Comunicação, reagendamento e cancelamento ficam em Comunicação e outras opções. Salve o resumo antes de concluir.</p></>}</div></details>
+      <button className="patient-link calm-signout" onClick={logout}>Sair da demonstração</button>
     </section>;
   }
 
@@ -2149,28 +1982,20 @@ export default function App() {
   return (
     <>
       <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
-      <div className={`app-shell ${user.role === "PATIENT" ? "patient-shell" : ""}`}>
+      <div className={`app-shell calm-shell ${user.role === "PATIENT" ? "patient-shell" : ""}`}>
         <aside className="sidebar">
           <div className="brand">
             Medi<span>Sync</span>
           </div>
 
-          <div className="sidebar-user">
-            {user.role === "PATIENT" ? <span className="patient-avatar">{user.name.charAt(0)}</span> : <img src={profile.profilePhoto} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/avatar-medica.svg"; }} alt="" />}
-            <span>
-              <strong>{user.name}</strong>
-              <small>
-                {user.role === "DOCTOR" ? profile.crm : "Paciente"}
-              </small>
-            </span>
-          </div>
+          <span className="sidebar-area">{user.role === "DOCTOR" ? "Área médica" : "Área do paciente"}</span>
 
           <nav aria-label="Navegação principal">
-            {nav.map(([target, , label]) => (
+            {desktopNav.map(([target, label]) => (
               <button
                 key={target}
-                aria-current={page === target ? "page" : undefined}
-                className={page === target ? "active" : ""}
+                aria-current={page === target || target === "more" && !desktopNav.some(([key]) => key === page) && page !== "booking" ? "page" : undefined}
+                className={page === target || target === "more" && !desktopNav.some(([key]) => key === page) && page !== "booking" ? "active" : ""}
                 onClick={() => {
                   setCurrentConversation(null);
                   setPage(target);
@@ -2187,23 +2012,14 @@ export default function App() {
 
           <div className="sidebar-footer">
             <button className="btn logout-button" onClick={logout}>Sair da conta</button>
-            <span>
-              {user.role === "DOCTOR"
-                ? `Chat: ${
-                    settings.chatMode === "OPEN"
-                      ? "Aberto"
-                      : settings.chatMode === "HIDDEN"
-                      ? "Oculto"
-                      : "Prioritário"
-                  }`
-                : "Modo paciente"}
-            </span>
+            <span>Demonstração acadêmica</span>
           </div>
         </aside>
 
         <main>
           <header className="topbar">
             <span className="mobile-brand">Medi<span>Sync</span></span>
+            <span className="desktop-context">{user.role === "DOCTOR" ? "Área médica" : "Área do paciente"}<span>/</span><strong>{currentLabel}</strong></span>
 
             <div className="topbar-actions">
               <button className="reading-shortcut" aria-pressed={settings.largerText} onClick={() => saveSettings({ largerText: !settings.largerText })} aria-label="Texto maior">A<span>+</span><small>Leitura</small></button>
@@ -2238,7 +2054,7 @@ export default function App() {
           </header>
 
           <div className="content-wrap" id="main-content" tabIndex={-1}>
-            {page !== "booking" && (user.role === "DOCTOR" || page !== "dashboard") && (history.length > 0 || page !== "dashboard" || currentConversation || activeRoom) && <div className="back-row"><button className="btn back-button" onClick={goBack}>← Voltar{activeRoom ? " para salas" : history.length ? ` para ${nav.find(([key]) => key === history[history.length - 1].page)?.[2] || "Painel"}` : " para Painel"}</button><span>{nav.find(([key]) => key === page)?.[2]}</span></div>}
+            {page !== "booking" && page !== "dashboard" && <div className="back-row"><button className="patient-link back-button" onClick={goBack}>← {activeRoom ? "Voltar para salas" : "Voltar"}</button></div>}
             {content}
           </div>
         </main>

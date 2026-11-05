@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal, statusLabel } from './DoctorWorkspace';
 import { UiIcon } from './UiIcon';
+import { downloadCalendar } from './calendar';
 
-export type PatientVisit = { id: number; doctorName: string; patientId: number; patientName: string; doctorId: number; service: string; startsAt: string; status: string; conversationId: number | null; telemedicineRoomId: number | null };
+export type PatientVisit = { id: number; doctorName: string; patientId: number; patientName: string; doctorId: number; service: string; startsAt: string; durationMinutes?: number; status: string; conversationId: number | null; telemedicineRoomId: number | null };
 type Service = { id: number; title: string; description: string; durationMinutes: number };
 type Profile = { name: string; crm: string; city: string; state: string; services: Service[] };
 type Request = <T = any>(path: string, options?: RequestInit) => Promise<T>;
@@ -25,49 +26,61 @@ export function PatientExperience({ mode, name, profile, appointments, chatEnabl
   onBook: (visit?: PatientVisit) => void; onSaved: (visit: PatientVisit) => void; onChat: (visit: PatientVisit) => void; onCall: (visit: PatientVisit) => void; onRate: (visit: PatientVisit) => void; onNavigate: (page: 'appointments' | 'messages' | 'more' | 'waitlist') => void;
 }) {
   const [cancel, setCancel] = useState<PatientVisit | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const upcoming = appointments.filter(a => ['CONFIRMED', 'IN_PROGRESS'].includes(a.status) && (Date.parse(a.startsAt) > Date.now() || a.status === 'IN_PROGRESS')).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+  const [calendarNotice, setCalendarNotice] = useState('');
+  const [visible, setVisible] = useState(6);
+  const [historyVisible, setHistoryVisible] = useState(6);
+  const upcoming = appointments.filter(a => ['CONFIRMED', 'IN_PROGRESS'].includes(a.status) && (Date.parse(a.startsAt) > Date.now() || a.status === 'IN_PROGRESS')).sort((a, b) => (a.status === 'IN_PROGRESS' ? 0 : 1) - (b.status === 'IN_PROGRESS' ? 0 : 1) || Date.parse(a.startsAt) - Date.parse(b.startsAt));
   const previous = appointments.filter(a => !upcoming.some(u => u.id === a.id)).sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt));
   const next = upcoming[0];
+  const detail = appointments.find(a => a.id === detailId);
+  const isUpcoming = (a: PatientVisit) => upcoming.some(u => u.id === a.id);
+  function openDetails(a: PatientVisit) { setError(''); setCalendarNotice(''); setDetailId(a.id); }
   async function cancelVisit() {
     if (!cancel || busy) return;
     setBusy(true); setError('');
     try {
       const visit = await request<PatientVisit>(`/patient/appointments/${cancel.id}/cancel`, { method: 'POST', body: '{}' });
-      onSaved(visit); setCancel(null); setNotice('Consulta cancelada. O horário foi liberado e você pode agendar novamente.');
+      onSaved(visit); setCancel(null); setNotice('Consulta cancelada. O horário foi liberado.');
     } catch (e) { setError(e instanceof Error ? e.message : 'Tente novamente.'); }
     finally { setBusy(false); }
   }
-  const card = (a: PatientVisit, featured = false) => <article className={`patient-visit card ${featured ? 'featured-visit' : ''}`} key={a.id}>
-    <div className="visit-date" aria-hidden="true"><span>{new Date(a.startsAt).toLocaleDateString('pt-BR', { ...zone, month: 'short' }).replace('.', '')}</span><strong>{new Date(a.startsAt).toLocaleDateString('pt-BR', { ...zone, day: '2-digit' })}</strong></div>
-    <div className="visit-body"><span className={`patient-status status-${a.status.toLowerCase()}`}><UiIcon name={a.status === 'CONFIRMED' ? 'check' : 'appointments'} size={16} />{statusLabel[a.status] || a.status}</span><VisitSummary visit={a} />
-      {a.service === 'Teleconsulta' ? <p className="visit-hint">A chamada aparece aqui quando a médica liberar a sala.</p> : <p className="visit-hint">Atendimento presencial · {profile.city}, {profile.state}. Confirme o endereço com a clínica.</p>}
-      {upcoming.some(u => u.id === a.id) && <div className="patient-visit-actions">
-        {a.telemedicineRoomId && <button className="btn primary" onClick={() => onCall(a)}>Entrar na chamada</button>}
-        <button className="btn" disabled={!chatEnabled} onClick={() => onChat(a)}><UiIcon name="messages" size={19} />Conversar com a médica</button>
-        {a.status === 'CONFIRMED' && <details className="visit-options"><summary>Alterar consulta</summary><div className="actions"><button className="btn" onClick={() => onBook(a)}>Reagendar</button><button className="btn patient-cancel" onClick={() => { setCancel(a); setError(''); }}>Cancelar consulta</button></div></details>}
-      </div>}
-      {a.status === 'COMPLETED' && <button className="btn" onClick={() => onRate(a)}>Avaliar atendimento</button>}
-    </div>
+  function exportCalendar(a: PatientVisit) {
+    try { downloadCalendar(a); setCalendarNotice('Arquivo preparado. Abra-o no calendário que você utiliza. Se reagendar, atualize o evento no seu calendário.'); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível preparar o calendário.'); }
+  }
+  const status = (a: PatientVisit) => <span className={`patient-status status-${a.status.toLowerCase()}`}>{a.status === 'CONFIRMED' && <UiIcon name="check" size={15} />}{statusLabel[a.status] || a.status}</span>;
+  const row = (a: PatientVisit) => <article className="calm-visit-row" key={a.id}>
+    <time className="calm-row-time" dateTime={a.startsAt}><strong>{hourLabel(a.startsAt)}</strong><span>{new Date(a.startsAt).toLocaleDateString('pt-BR', { ...zone, day: 'numeric', month: 'short', year: 'numeric' })}</span></time>
+    <div className="calm-row-person"><h3>{a.service}</h3><span>{a.doctorName}</span></div>{status(a)}<button className="btn" aria-label={`Ver detalhes de ${a.service} em ${dateLabel(a.startsAt)} às ${hourLabel(a.startsAt)}`} onClick={() => openDetails(a)}>Ver detalhes<UiIcon name="arrow" size={17} /></button>
   </article>;
-  return <div className="patient-experience">
+  return <div className="patient-experience calm-patient">
+    {notice && <div className="patient-notice" role="status"><UiIcon name="check" /><span>{notice}</span></div>}
     {mode === 'dashboard' ? <>
-      <section className="patient-welcome"><div><span className="eyebrow">Seu cuidado, mais simples</span><h1 tabIndex={-1}>Olá, {name.split(' ')[0]}.</h1><p>Vamos cuidar da sua próxima consulta?</p></div><button className="btn primary patient-main-action" onClick={() => onBook()}><UiIcon name="appointments" />Agendar consulta<UiIcon name="arrow" size={19} /></button></section>
-      <div className="patient-section-title"><h2>Sua próxima consulta</h2><button className="patient-link" onClick={() => onNavigate('appointments')}>Ver todas <UiIcon name="arrow" size={18} /></button></div>
-      {next ? card(next, true) : <section className="card patient-empty"><UiIcon name="appointments" size={32} /><h2>Nenhuma consulta marcada</h2><p>Quando você agendar, a data e os detalhes aparecerão aqui.</p><button className="btn primary" onClick={() => onBook()}>Escolher uma consulta</button></section>}
-      <div className="patient-shortcuts"><button className="card patient-shortcut" onClick={() => onNavigate('waitlist')}><span className="shortcut-icon"><UiIcon name="waitlist" /></span><span><strong>Prefere outro horário?</strong><small>Entre na fila para receber avisos de vagas.</small></span><UiIcon name="arrow" /></button><button className="card patient-shortcut" onClick={() => onNavigate('more')}><span className="shortcut-icon"><UiIcon name="help" /></span><span><strong>Precisa de uma ajuda?</strong><small>Veja como usar e ajuste a leitura.</small></span><UiIcon name="arrow" /></button></div>
-      <p className="patient-demo-note">Ambiente de demonstração · Os dados e atendimentos são fictícios.</p>
+      <header className="calm-heading"><div><span className="eyebrow">Seu cuidado</span><h1 tabIndex={-1}>Olá, {name.split(' ')[0]}.</h1><p>Encontre aqui o seu próximo compromisso.</p></div><button className="btn primary" onClick={() => onBook()}><UiIcon name="appointments" size={20} />Agendar consulta</button></header>
+      <div className="patient-section-title"><h2>Sua próxima consulta</h2><button className="patient-link" onClick={() => onNavigate('appointments')}>Ver todas <UiIcon name="arrow" size={17} /></button></div>
+      {next ? <article className="card calm-focus-card"><div className="calm-focus-top">{status(next)}<span>{dateLabel(next.startsAt)}</span></div><div className="calm-focus-main"><div><time dateTime={next.startsAt} className="calm-focus-time">{hourLabel(next.startsAt)}</time><h3>{next.service}</h3><p>{next.doctorName}</p><small>Horário de Brasília</small></div><button className="btn primary" onClick={() => openDetails(next)}>Ver detalhes<UiIcon name="arrow" size={19} /></button></div></article> : <section className="card patient-empty"><UiIcon name="appointments" size={32} /><h2>Nenhuma consulta marcada</h2><p>Toque em Agendar consulta para escolher um horário.</p></section>}
+      <div className="calm-quiet-links"><button className="patient-link" onClick={() => onNavigate('waitlist')}><UiIcon name="waitlist" size={19} />Fila de espera</button><button className="patient-link" onClick={() => onNavigate('more')}><UiIcon name="help" size={19} />Ajuda para usar</button></div>
     </> : <>
-      <header className="patient-page-heading"><div><span className="eyebrow">Sua agenda</span><h1 tabIndex={-1}>Minhas consultas</h1><p>Veja os detalhes e altere sua consulta quando precisar.</p></div><button className="btn primary" onClick={() => onBook()}>Agendar consulta</button></header>
-      {notice && <div className="patient-notice" role="status"><UiIcon name="check" /><span>{notice}</span></div>}
-      <h2>Próximas consultas <span className="patient-count">{upcoming.length}</span></h2>
-      <div className="patient-visit-list">{upcoming.length ? upcoming.map(a => card(a)) : <section className="card patient-empty"><p>Você ainda não tem consultas futuras.</p><button className="btn primary" onClick={() => onBook()}>Agendar consulta</button></section>}</div>
-      <button className="patient-link waitlist-link" onClick={() => onNavigate('waitlist')}><UiIcon name="waitlist" />Consultar minha fila de espera</button>
-      <details className="card patient-history"><summary>Histórico de consultas ({previous.length})</summary><div className="patient-visit-list">{previous.length ? previous.map(a => card(a)) : <p>Nenhum atendimento no histórico.</p>}</div></details>
+      <header className="calm-heading"><div><span className="eyebrow">Sua agenda</span><h1 tabIndex={-1}>Minhas consultas</h1><p>Abra uma consulta para ver os detalhes ou alterar o horário.</p></div><button className="btn primary" onClick={() => onBook()}>Agendar consulta</button></header>
+      <div className="calm-list-heading"><h2>Próximas consultas</h2><span>{upcoming.length} {upcoming.length === 1 ? 'consulta' : 'consultas'}</span></div>
+      <div className="card calm-visit-list">{upcoming.length ? upcoming.slice(0, visible).map(row) : <div className="patient-empty"><p>Você ainda não tem consultas futuras.</p></div>}</div>
+      {upcoming.length > visible && <button className="btn calm-load-more" onClick={() => setVisible(n => n + 6)}>Ver mais consultas ({upcoming.length - visible})</button>}
+      <details className="card patient-history calm-history"><summary>Histórico de consultas ({previous.length})</summary><div className="calm-visit-list">{previous.length ? previous.slice(0, historyVisible).map(row) : <p>Nenhum atendimento no histórico.</p>}{previous.length > historyVisible && <button className="btn calm-load-more" onClick={() => setHistoryVisible(n => n + 6)}>Ver mais do histórico</button>}</div></details>
+      <button className="patient-link waitlist-link" onClick={() => onNavigate('waitlist')}><UiIcon name="waitlist" size={19} />Consultar minha fila de espera</button>
     </>}
-    {cancel && <Modal title="Cancelar esta consulta?" onClose={() => { if (!busy) setCancel(null); }}><VisitSummary visit={cancel} /><p className="cancel-explanation">Seu horário será liberado para outra pessoa. Se quiser apenas mudar o dia, escolha reagendar.</p><ErrorNotice message={error} /><div className="patient-confirm-actions"><button className="btn primary" disabled={busy} onClick={() => setCancel(null)}>Manter consulta</button><button className="btn" disabled={busy} onClick={() => { setCancel(null); onBook(cancel); }}>Reagendar</button><button className="btn patient-cancel" disabled={busy} onClick={cancelVisit}>{busy ? 'Cancelando…' : 'Confirmar cancelamento'}</button></div></Modal>}
+    {detail && <Modal title="Detalhes da consulta" onClose={() => setDetailId(null)}><div className="calm-detail-status">{status(detail)}</div><VisitSummary visit={detail} />
+      <p className="visit-hint">{detail.service === 'Teleconsulta' ? 'Por chamada. A sala aparece quando a médica liberar o atendimento.' : `Presencial · ${profile.city}, ${profile.state}. Confirme o endereço com a clínica.`}</p>
+      {isUpcoming(detail) && <div className="calm-detail-primary">{detail.telemedicineRoomId && <button className="btn primary" onClick={() => { setDetailId(null); onCall(detail); }}>Entrar na chamada</button>}<button className={`btn ${detail.telemedicineRoomId ? '' : 'primary'}`} disabled={!chatEnabled} onClick={() => { setDetailId(null); onChat(detail); }}><UiIcon name="messages" size={19} />Conversar com a médica</button></div>}
+      {!chatEnabled && isUpcoming(detail) && <p className="muted">A conversa está indisponível no momento.</p>}
+      {detail.status === 'CONFIRMED' && isUpcoming(detail) && <><div className="calm-detail-tools"><button className="btn" onClick={() => { setDetailId(null); onBook(detail); }}>Reagendar</button><button className="btn" onClick={() => exportCalendar(detail)}><UiIcon name="appointments" size={18} />Adicionar ao calendário</button></div><details className="calm-cancel-disclosure"><summary>Não vou conseguir comparecer</summary><p>Você pode escolher outro horário ou liberar esta vaga para outra pessoa.</p><button className="btn patient-cancel" onClick={() => { setDetailId(null); setCancel(detail); setError(''); }}>Cancelar consulta</button></details></>}
+      {detail.status === 'COMPLETED' && <button className="btn primary" onClick={() => { setDetailId(null); onRate(detail); }}>Avaliar atendimento</button>}
+      {calendarNotice && <p className="patient-notice" role="status">{calendarNotice}</p>}<ErrorNotice message={error} />
+    </Modal>}
+    {cancel && <Modal title="Cancelar esta consulta?" onClose={() => { if (!busy) setCancel(null); }}><VisitSummary visit={cancel} /><p className="cancel-explanation">Seu horário será liberado para outra pessoa. Se quiser apenas mudar o dia, escolha reagendar.</p><ErrorNotice message={error} /><div className="patient-confirm-actions"><button className="btn primary" disabled={busy} onClick={() => { setCancel(null); openDetails(cancel); }}>Manter consulta</button><button className="btn" disabled={busy} onClick={() => { setCancel(null); onBook(cancel); }}>Reagendar</button><button className="btn patient-cancel" disabled={busy} onClick={cancelVisit}>{busy ? 'Cancelando…' : 'Confirmar cancelamento'}</button></div></Modal>}
   </div>;
 }
 

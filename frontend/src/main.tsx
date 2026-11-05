@@ -11,3 +11,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 
 import "./patient.css";
+
+import "./simplicity.css";
