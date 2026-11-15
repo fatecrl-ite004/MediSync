@@ -21,7 +21,7 @@ test('Ciclo médico: validação, agenda, registro e persistência após reinici
   await start();
   assert.equal((await req('/patients','GET',undefined,'PATIENT')).status,403);
   assert.equal((await req('/patients','POST',{name:'A'})).status,400);
-  const patient=await req('/patients','POST',{name:'Paciente de Teste',birthDate:'1990-01-01'}); assert.equal(patient.status,201);
+  const patient=await req('/patients','POST',{name:'Paciente de teste 1'}); assert.equal(patient.status,201);
   const startsAt=new Date(Date.now()+40*86400000).toISOString();
   const data={patientId:patient.data.id,startsAt,service:'Retorno',durationMinutes:30};
   const visit=await req('/appointments','POST',data); assert.equal(visit.status,201); const id=visit.data.id;
