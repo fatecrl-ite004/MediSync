@@ -1,6 +1,8 @@
+> **Material de planejamento acadêmico, não uma descrição de serviço comercial em operação.** Promessas de segurança, conformidade LGPD, credenciais, números ou resultados exigem comprovação antes de publicidade. Consulte a [revisão de privacidade e acessibilidade](AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md) de 14/11/2026 para os limites atuais. O original DOCX foi preservado.
+
 # Plano de marketing MediSync
 
-> Transcrição textual do documento enviado pelo grupo em 31/10/2026. O conteúdo original foi preservado, inclusive trechos que precisam de revisão. Consulte [o arquivo DOCX original](Plano-de-Marketing-MediSync.docx). As afirmações de mercado e comparações não foram verificadas externamente nesta revisão.
+> Transcrição textual do documento enviado pelo grupo em 31/10/2026. A transcrição recebeu ajustes de transparência em 14/11/2026: retirada do CNPJ não confirmado e qualificação das alegações sobre lembretes. Outros trechos históricos ainda precisam de revisão. Consulte [o arquivo DOCX original](Plano-de-Marketing-MediSync.docx). As afirmações de mercado e comparações não foram verificadas externamente nesta revisão.
 
 PLANO DE MARKETING
 
@@ -34,7 +36,7 @@ Inovação contínua: O grande diferencial inovador do MediSync é o reaproveita
 
 Distribuição eficaz: A entrega do serviço será feita através de um aplicativo móvel voltado para a experiência do usuário que consome uma API gerenciada por um backend. O sistema valida as disponibilidades no servidor no momento da confirmação para evitar condições de corrida e impedir conflitos ou agendamentos duplicados em um mesmo horário.
 
-Campanhas de comunicação: A estratégia comunicacional do produto baseia-se em um sistema ativo de notificações e lembretes eletrônicos de texto direcionados aos pacientes. Evidências mostram que estes lembretes melhoram as taxas de comparecimento às consultas e incentivam o cancelamento antecipado quando o paciente não pode comparecer, facilitando os processos administrativos.
+Campanhas de comunicação: o protótipo demonstra avisos dentro do aplicativo. Lembretes por canais externos e possíveis efeitos no comparecimento são propostas a investigar, sem resultados medidos do MediSync nesta etapa.
 
 Escopo atual (MVP): O MediSync encontra-se na fase de MVP (Produto Mínimo Viável), isto é, uma primeira versão funcional, com os recursos essenciais, desenvolvida para validar a proposta com os usuários antes de investir em uma solução completa. Nesta etapa, o protótipo contempla agendamento, cancelamento e reagendamento de consultas, fila de espera, notificações, chat entre paciente e médico, perfil profissional, agenda do médico e recursos básicos de acessibilidade, que serão apresentados em demonstrações guiadas e avaliados quanto à usabilidade, clareza dos fluxos e adequação às rotinas de clínicas particulares, antes de uma possível disponibilização comercial.
 
@@ -44,7 +46,7 @@ Possibilidades futuras de desenvolvimento: Após a validação do MVP, o sistema
 
 Nome da empresa: MEDISYNC
 
-CNPJ: 07.231.950/0001-76
+CNPJ: não informado. Projeto acadêmico, sem identificação empresarial confirmada. O número ilustrativo do material histórico foi retirado desta transcrição pública.
 
 Endereço: Não tem
 
