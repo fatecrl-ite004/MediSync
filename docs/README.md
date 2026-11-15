@@ -1,22 +1,29 @@
 # Documentação do MediSync
 
-Este índice reúne os materiais disponíveis e relaciona a proposta acadêmica ao comportamento atual do protótipo. As referências descrevem intenções do produto; a implementação e a validação indicam o que já pode ser demonstrado.
+Índice da revisão de entrega de 15/11/2026. A implementação atual e a auditoria têm precedência sobre promessas e tecnologias de documentos históricos.
 
-| Material | Finalidade | Situação |
-| --- | --- | --- |
-| [README principal](../README.md) | Instalação, execução, configuração e build | Atualizado para os fluxos do paciente |
-| [Wiki e apresentação da P1](https://github.com/fatecrl-ite004/MediSync/wiki) | Problema, objetivos, participantes, proposta inicial e arquitetura | Referência da P1; pode conter planos anteriores |
-| [Plano de marketing em Markdown](PLANO-DE-MARKETING.md) | Consulta e busca do conteúdo fornecido pelo grupo | Transcrição textual; sem alteração das afirmações originais |
-| [Plano de marketing original](Plano-de-Marketing-MediSync.docx) | Preservar o arquivo recebido | Original, sem edição |
-| [Experiência do usuário](EXPERIENCIA-DO-USUARIO.md) | Percursos, decisões, alinhamento com marketing e avaliação | Base de 31/10/2026; navegação atual em [Simplificação no PC](SIMPLICIDADE-NO-PC.md) |
-| [Modelo inicial de dados](../MER/MER.jpeg) | Referência conceitual do banco planejado | O protótipo atual usa JSON, sem migrações SQL |
-| [Simplificação no PC](SIMPLICIDADE-NO-PC.md) | Menu, próxima consulta, agenda compacta e calendário | Revisão de 05/11/2026 |
-| [Validação](../VALIDACAO.md) | Evidências técnicas e limites dos testes | Atualizado com os cenários do paciente |
+| Material | Finalidade e estado |
+| --- | --- |
+| [README principal](../README.md) | Instalação a partir de clone limpo, execução, configuração, testes e build |
+| [Entrega acadêmica](ENTREGA.md) | Relação entre os requisitos da atividade e os artefatos |
+| [Wiki oficial](https://github.com/fatecrl-ite004/MediSync/wiki) | Documentação consultável; [fontes da revisão](wiki/Home.md) versionadas junto ao código |
+| [Roteiro de demonstração](DEMONSTRACAO.md) | Jornada do paciente e do profissional, recursos e limites |
+| [Plano de marketing com anexos](Plano-de-Marketing-MediSync-com-Anexos.docx) | Edição Word mais recente com anexos A–I; documento didático, com afirmações históricas não validadas |
+| [Marketing em Markdown](PLANO-DE-MARKETING.md) | Transcrição da base de 31/10, revisada para transparência em 14/11; não substitui o Word de novembro |
+| [Anexos web/mobile](anexos/README.md) | Cinco pranchas e 16 capturas originais de 13/11 |
+| [Histórico](historico/) | Apresentações da P1, fontes de marketing, protótipos antigos e cópia da wiki anterior à entrega |
+| [Experiência do usuário](EXPERIENCIA-DO-USUARIO.md) | Proposta de 31/10, decisões e roteiro futuro de avaliação |
+| [Simplificação no PC](SIMPLICIDADE-NO-PC.md) | Revisão de navegação e calendário de 05/11 |
+| [Modelo inicial de dados](../MER/MER.jpeg) | Artefato de planejamento; a implementação atual usa JSON |
+| [Privacidade e acessibilidade](AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md) | Revisão de 14/11, inventário de dados, 18 itens solicitados e riscos pendentes |
+| [Ativos e licenças](ATIVOS-E-LICENCAS.md) | Procedência, licenças e confirmações pendentes |
+| [Licenças das dependências](LICENCAS-NPM.md) | Inventário das versões registradas nos locks |
+| [Validação](../VALIDACAO.md) | Evidências técnicas e limites dos testes |
 
-## Divergências que o grupo precisa revisar
+## Interpretação do material histórico
 
-O plano descreve clínicas particulares de médio porte como público institucional prioritário, mas algumas tabelas ainda citam policlínicas municipais. O item 3.1 também exclui “clínicas particulares” na frase final, contrariando a definição de público na mesma seção. Esta revisão adotou o direcionamento predominante de clínicas particulares para organizar a experiência, sem editar o original nem inventar uma decisão formal do grupo.
+Planos de marketing e apresentações descrevem propostas. Recepção, WhatsApp, e-mail externo, recomendações preditivas, múltiplas clínicas, autenticação real e banco definitivo não estão implementados. As chamadas atuais são simulações sem captura de mídia.
 
-As tabelas de indicadores mencionam cadastros de piloto, redução de faltas e ocupação de vagas, enquanto a seção 5.2 propõe demonstrações simuladas sem uso clínico real. Os indicadores de mercado devem continuar como metas ou hipóteses até haver medição autorizada. A comparação com concorrentes no material não foi verificada nesta implementação.
+Há divergências no material de marketing sobre clínicas particulares versus policlínicas municipais e sobre os públicos excluídos. O direcionamento predominante adotado na demonstração é o de clínicas particulares, sem inventar uma decisão formal do grupo. Indicadores de redução de faltas, ocupação e adesão são metas/hipóteses sem medição autorizada.
 
-Fila de espera, avisos dentro do aplicativo e agendamento pelo paciente agora têm um fluxo demonstrável. WhatsApp, e-mail externo, recomendações preditivas, múltiplas clínicas, autenticação real e banco definitivo continuam fora da versão atual. O plano não deve ser usado como evidência de funcionalidades ainda ausentes.
+Credenciais e identificadores em documentos históricos não são dados legais confirmados. As políticas atuais identificam o caráter acadêmico; a equipe ainda deve definir os responsáveis, contatos privados, licença e condições para qualquer operação real.
