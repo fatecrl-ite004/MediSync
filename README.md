@@ -2,9 +2,13 @@
 
 **Sistema de agendamento e comunicação médica — protótipo acadêmico v0.5.**
 
-O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e telemedicina em uma interface web. A área do paciente prioriza agendamento em três etapas, acompanhamento da próxima consulta e comunicação clara, mantendo a rotina médica disponível. Projeto desenvolvido no curso de Tecnologia em Sistemas para Internet da FATEC Rubens Lara.
+O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e salas de chamada simuladas em uma interface web. A área do paciente prioriza agendamento em três etapas, acompanhamento da próxima consulta e comunicação clara, mantendo a rotina médica disponível. Projeto desenvolvido no curso de Tecnologia em Sistemas para Internet da FATEC Rubens Lara.
 
 [Documentação e apresentação da P1 na wiki](https://github.com/fatecrl-ite004/MediSync/wiki)
+
+**Entrega acadêmica — 15/11/2026:** [índice dos artefatos](docs/ENTREGA.md), [roteiro de demonstração](docs/DEMONSTRACAO.md), [plano de marketing com anexos](docs/Plano-de-Marketing-MediSync-com-Anexos.docx) e [telas web/mobile](docs/anexos/README.md). As fontes das páginas da wiki estão em [docs/wiki](docs/wiki).
+
+> **Revisão de 14/11/2026:** [privacidade, acessibilidade e riscos pendentes](docs/AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md). A versão continua exclusivamente demonstrativa; não está autorizada para dados reais de saúde nem operação comercial. Páginas públicas em `/#/privacidade`, `/#/termos`, `/#/cookies`, `/#/reembolso`, `/#/responsaveis` e `/#/acessibilidade`.
 
 ## Funcionalidades
 
@@ -19,15 +23,17 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e te
 
 - Agenda com cadastro, busca, filtros, reagendamento e cancelamento de consultas com motivo.
 - Validação de horário futuro, duração de 10 a 240 minutos e bloqueio de sobreposição.
-- Cadastro de pacientes e consulta do histórico individual.
+- Cadastro apenas de apelidos fictícios no formato `Paciente de teste 1` e consulta do histórico demonstrativo.
 - Registro de resumo e orientações durante o atendimento; leitura após a conclusão. O resumo deve ser salvo antes de concluir.
-- Edição dos dados principais do perfil médico. Formação, experiências e catálogo permanecem com exemplos demonstrativos.
+- Edição dos dados principais do perfil médico. Catálogo e perfil são exemplos fictícios, sem credenciais verificadas.
 - Chat em tempo real ligado à consulta, notificações, feedback, denúncias e avaliações.
-- Salas de voz e vídeo criadas pelo médico para consultas elegíveis.
+- Simulação de salas de chamada criadas pelo perfil médico; câmera e microfone desativados.
 - Botão de retorno à página de origem, tema claro/escuro nas configurações e recursos de acessibilidade.
 - Persistência local dos dados em arquivo JSON.
 
 > Utilize somente dados fictícios. O login é simulado e o projeto ainda não possui autenticação real, banco definitivo ou prontuário certificado. Essas funcionalidades fazem parte da evolução planejada.
+
+- Páginas legais, aviso de armazenamento necessário e registro local versionado, sem Analytics ou publicidade.
 
 ## Tecnologias utilizadas
 
@@ -37,7 +43,7 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e te
 | Frontend | React 18 para a interface web. |
 | Backend | Node.js e Express 4 para a API HTTP. |
 | Ferramentas de build | Vite 6 e TypeScript 5 para desenvolvimento, verificação e compilação. |
-| Comunicação | Socket.IO 4 para eventos em tempo real e WebRTC para voz e vídeo. |
+| Comunicação | Socket.IO 4 para eventos em tempo real. Salas de chamada são simulações sem captura ou transmissão de mídia. |
 | Armazenamento | Arquivo JSON local, criado pelo backend. |
 | Testes | Executor nativo `node --test` e `node:assert`. |
 
@@ -111,6 +117,8 @@ O backend lê estas variáveis do ambiente do processo:
 
 | Variável | Padrão | Uso |
 | --- | --- | --- |
+| `MEDISYNC_ALLOWED_ORIGINS` | Origens locais do Vite | Lista de origens permitidas, separadas por vírgula. Sem curingas. Configure a origem exata se testar por IP na rede local. |
+| `NODE_ENV` | não definido | Com `production`, a API recusa inicialização: autenticação demonstrativa não pode atender produção. |
 | `PORT` | `3000` | Define a porta da API e do Socket.IO. |
 | `MEDISYNC_DATA_FILE` | `backend/data/medisync.json` | Define outro arquivo de armazenamento. Prefira um caminho absoluto. |
 
@@ -199,17 +207,17 @@ O atalho não substitui `npm ci` caso você precise reinstalar as dependências 
 
 ### Chat e telemedicina
 
-Escolha **Sou profissional de saúde** na janela normal e **Sou paciente** em uma janela anônima. Use uma consulta de **João Silva** confirmada ou em atendimento; os demais pacientes de exemplo não possuem login próprio. O médico cria a sala, e ambos autorizam câmera e microfone no navegador.
+Escolha **Sou profissional de saúde** na janela normal e **Sou paciente** em uma janela anônima. Use uma consulta de **João Silva** confirmada ou em atendimento; os demais pacientes de exemplo não possuem login próprio. O perfil médico cria a sala fictícia e o paciente pode abrir a simulação. Não é solicitada permissão de câmera/microfone.
 
-Consultas canceladas ou concluídas não abrem novas salas. As salas vinculadas são encerradas ao cancelar ou concluir o atendimento. Ao sair da chamada, câmera e microfone são liberados.
+Consultas canceladas ou concluídas não abrem novas salas. As salas vinculadas são encerradas ao cancelar ou concluir o atendimento. Não há captura de mídia nesta revisão.
 
-Para testar câmera e microfone no mesmo computador, use `localhost`. O WebRTC utiliza STUN público; chamadas entre redes diferentes podem exigir TURN e HTTPS. Não foi validada uma chamada audiovisual real entre dois dispositivos nesta revisão.
+As salas são simulações de interface; a revisão de privacidade removeu captura de câmera/microfone, WebRTC e STUN externo. Não há chamada audiovisual real nesta versão.
 
 ### Conferir a interface no celular
 
 Com notebook e celular na mesma rede de confiança, utilize `npm.cmd run dev` na raiz. O Vite recebe conexões na rede local e encaminha API e Socket.IO ao backend. No PowerShell, use `ipconfig` para identificar o IPv4 da conexão ativa do notebook. No navegador do celular, abra `http://IP_DO_NOTEBOOK:5173`, substituindo `IP_DO_NOTEBOOK` pelo endereço encontrado. Se houver bloqueio, confira as regras locais de rede/firewall com o responsável pelo dispositivo, sem desativar proteções. O teste depende da rede permitir conexão entre dispositivos.
 
-Esse acesso permite conferir navegação, agendamento e mensagens com dados fictícios. Em HTTP por IP, o navegador pode bloquear câmera e microfone; para chamadas fora de `localhost`, é necessário um contexto seguro com HTTPS. O desenvolvimento não é uma publicação na internet.
+Esse acesso permite conferir navegação, agendamento e mensagens com dados fictícios. No terminal do backend, configure antes a origem exata: `$env:MEDISYNC_ALLOWED_ORIGINS = "http://IP_DO_NOTEBOOK:5173,http://localhost:5173"`. Substitua o IP, reinicie o backend e mantenha a rede de confiança. Não use curingas. Câmera e microfone continuam desativados. O desenvolvimento não é uma publicação na internet.
 
 ### Testes
 
@@ -219,9 +227,9 @@ Na raiz, execute:
 npm.cmd --prefix backend test
 ```
 
-Os testes de integração cobrem cadastro e validações, restrição de papel nas rotas médicas adicionadas, conflitos de agenda, reagendamento, cancelamento, início e conclusão, registro obrigatório, bloqueio de edição após conclusão e persistência após reiniciar.
+Os testes de integração também verificam minimização de cadastro, bloqueio de origens externas, limites de texto, cabeçalhos e bloqueio de produção. Cobrem cadastro e validações, restrição de papel nas rotas médicas adicionadas, conflitos de agenda, reagendamento, cancelamento, início e conclusão, registro obrigatório, bloqueio de edição após conclusão e persistência após reiniciar.
 
-Os testes usam APIs nas portas **3198** e **3199**, arquivos temporários e encerram os processos ao terminar; não alteram o arquivo de dados da demonstração. As duas portas devem estar livres durante os testes. O fluxo do paciente também verifica duas confirmações concorrentes para a mesma vaga, proteção das consultas de outros pacientes, avisos da fila, persistência e abertura de um arquivo da v0.5 sem o campo de fila.
+Os testes usam APIs nas portas **3198** e **3199**, arquivos temporários e encerram os processos ao terminar; não alteram o arquivo de dados da demonstração. As portas 3196, 3198 e 3199 devem estar livres durante os testes. O fluxo do paciente também verifica duas confirmações concorrentes para a mesma vaga, proteção das consultas de outros pacientes, avisos da fila, persistência e abertura de um arquivo da v0.5 sem o campo de fila.
 
 O frontend agora tem testes para o arquivo de calendário, executados com o Node.js 24 indicado nos pré-requisitos:
 
@@ -229,7 +237,7 @@ O frontend agora tem testes para o arquivo de calendário, executados com o Node
 npm.cmd --prefix frontend test
 ```
 
-São três testes que cobrem datas, duração, identidade do evento, caracteres especiais, quebra de linhas UTF-8 e entradas inválidas. Não dependem de conta de calendário nem de conexão externa. Eles não substituem a conferência de importação no calendário do dispositivo.
+Os testes cobrem datas, duração, identidade do evento, caracteres especiais, quebra de linhas UTF-8 e entradas inválidas, além de ciência de armazenamento versionada/expirada e prevenção de reintrodução de mídia e rastreadores. Não dependem de conta de calendário nem de conexão externa. Eles não substituem a conferência de importação no calendário do dispositivo.
 
 Utilize `npm.cmd --prefix frontend run build` para verificar a compilação. Os resultados e limites da validação estão em [VALIDACAO.md](VALIDACAO.md).
 
@@ -245,9 +253,9 @@ Utilize `npm.cmd --prefix frontend run build` para verificar a compilação. Os 
 | Interface abre, mas não entra ou não carrega dados | Confira se a API está ativa em `http://localhost:3000/api/health` e se o proxy de `frontend/vite.config.ts` corresponde à porta usada. Reinicie o Vite após mudar o proxy. |
 | Arquivo de dados incompleto ou inválido | Pare o backend e restaure um backup válido. Para recriar somente a demonstração, renomeie a pasta `data` preservando a cópia. |
 | Erro ao salvar dados | Confira espaço disponível e permissão de escrita na pasta do arquivo JSON. |
-| Câmera/microfone não disponíveis | Confira as permissões do navegador e use `localhost` no teste local. Não há garantia de chamadas entre todas as redes. |
+| Câmera/microfone não disponíveis | É intencional: as salas são simulações sem captura ou transmissão de mídia. |
 
-## Build para produção
+## Build e prévia local
 
 Com as dependências já instaladas, na raiz:
 
@@ -310,14 +318,14 @@ A apresentação da P1 identifica os integrantes abaixo. As responsabilidades in
 | --- | --- |
 | Luiz Henrique dos Passos Silva | Divisão individual a confirmar com o grupo. |
 | Danilo Almeida Brito | Divisão individual a confirmar com o grupo. |
-| Leandro | Divisão individual a confirmar com o grupo. |
+| Leandro Andrade dos Santos | Divisão individual a confirmar com o grupo. |
 
 ## Documentação adicional
 
 Consulte a [Wiki do MediSync](https://github.com/fatecrl-ite004/MediSync/wiki) para conhecer o problema, o público-alvo, a apresentação da P1, as funcionalidades, a arquitetura, o modelo de dados e as próximas etapas.
 
 - [Índice da documentação](docs/README.md): referências, marketing e decisões de experiência.
-- [Plano de marketing](docs/PLANO-DE-MARKETING.md): transcrição do material enviado, com original preservado.
+- [Plano de marketing](docs/PLANO-DE-MARKETING.md): transcrição da base de 31/10 revisada para transparência; a edição Word de novembro está no índice dos artefatos.
 - [Simplificação no PC](docs/SIMPLICIDADE-NO-PC.md): organização das telas, calendário, validação e próximos passos.
 - [Decisões da experiência do usuário](docs/EXPERIENCIA-DO-USUARIO.md): fluxos, limites e roteiro de avaliação.
 - [Registro de validação](VALIDACAO.md): verificações documentadas do protótipo.

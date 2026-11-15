@@ -1,3 +1,54 @@
+# Preparação da entrega — 15/11/2026
+
+Verificações executadas com Node.js 24.22.1:
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm --prefix backend ci` | Aprovado; instalação a partir do lock versionado |
+| `npm --prefix frontend ci` | Aprovado; instalação a partir do lock versionado |
+| `npm --prefix backend test` | 4 testes aprovados, 0 falhas |
+| `npm --prefix frontend test` | 6 testes aprovados, 0 falhas |
+| `npm --prefix frontend run build` | TypeScript e Vite 6.4.6 aprovados |
+| Integridade dos documentos e pacotes | DOCX, PPTX e ZIP abriram sem erro de CRC; anexos E–I presentes no Word mais recente |
+| Links locais do índice e README | Destinos existentes no pacote preparado |
+
+O código funcional e os locks do pacote são idênticos à revisão submetida a esses comandos. A organização dos documentos não alterou o comportamento da aplicação. As conferências no navegador abaixo mantêm suas datas originais; não foram repetidas nesta preparação. A disponibilidade dos novos links remotos depende da publicação no repositório e na wiki.
+
+---
+
+# Complemento da revisão — 14/11/2026
+
+- Build TypeScript/Vite e os 10 testes passaram novamente. O teste de privacidade também rejeita dados extras em preferências, tipos inválidos, CRM numérico e especialidades em formato inválido; preserva edição do perfil fictício e preferências válidas.
+- `npm audit --audit-level=low` retornou zero vulnerabilidades conhecidas nos dois locks nesta data.
+- Navegador: aviso de armazenamento dispensado e mantido após recarga; versão pública 2026-11-14; scripts presentes no DOM somente do Vite e da aplicação local.
+- Teclado: Shift+Tab do fechar para o último controle do cadastro, Tab para o aviso de privacidade e Enter para abrir a política; foco no título legal, Tab fora da interface oculta, retorno ao modal, Escape e retorno ao botão Cadastrar paciente conferidos.
+- Contraste: amostra de 51 elementos de texto na página Pacientes e 27 na página de cookies em escuro/alto contraste/texto maior, sem falhas no cálculo amostral. Não cobre gradientes, opacidade e todos os estados.
+- Revisão responsiva em iframe: cookies nos quadros de 320, 390, 768, 1024 e 1280 px com escuro/alto contraste/texto maior; seis páginas legais em quadro de 320 px, sem overflow horizontal. Corrigido min-width do body para acomodar a barra vertical: área útil de 305 px no quadro de 320 px. Não houve teste em celular físico ou validação completa de zoom 200%/400%.
+- Retirados CNPJ não confirmado e alegação sem fonte sobre lembretes do Markdown de marketing. O DOCX antigo é material histórico; não é identificação empresarial nem texto aprovado de divulgação.
+
+Não existe certificação de acessibilidade ou conformidade integral LGPD. Persistem as pendências descritas na auditoria, especialmente identidade, contato privado e controles para operação real.
+
+---
+
+# Revisão de privacidade e acessibilidade — 13/11/2026
+
+Resultado: build aprovado com Vite 6.4.6; 6 testes frontend e 4 testes backend aprovados (10 no total), após `npm ci` dos dois locks corrigidos. `npm audit --audit-level=low` não encontrou vulnerabilidades conhecidas em ambos os locks em 13/11/2026. Isso não comprova ausência de falhas de segurança. Alertas iniciais: Vite alto, body-parser alto e qs moderado; corrigidos sem `--force` para Vite 6.4.6, body-parser 1.20.9 e qs 6.16.2.
+
+Verificações adicionais desta revisão:
+
+- As seis páginas legais abriram pelo rodapé sem login; em 320 px, largura do documento e do conteúdo permaneceram 320 px. A página de acessibilidade também foi verificada em 390, 768, 1024 e 1280 px, sem overflow horizontal.
+- Aviso de armazenamento: “somente necessários” retirou o aviso; recarga manteve a escolha; apagar ciência fez o aviso reaparecer. Os testes cobrem JSON inválido, versão antiga, data futura e expiração de 180 dias.
+- Teclado: modal de cadastro recebeu foco no fechar; Tab alcançou o link de privacidade; Enter abriu a política e focou seu título; Tab na política ficou fora da interface oculta. Voltar restaurou foco ao fechar do modal. Shift+Tab do fechar foi para o último botão; Escape fechou e devolveu foco a Cadastrar paciente.
+- Cadastro `Paciente de teste 8` salvo pela interface, sem campos de contato, nascimento ou alergias. Os testes de API confirmam rejeição de nome livre e de e-mail/campos extras.
+- No DOM da tela médica: uma imagem local `/avatar-medica.svg`, decorativa junto ao nome, com alt vazio; entradas de script somente locais do Vite e da aplicação. A foto informativa do perfil tem descrição da ilustração fictícia. A inspeção de fonte não encontrou GA, GTM, pixels, importação de webfonts ou captura WebRTC restante.
+- Contraste calculado sobre estilos computados: tela médica inicial apresentou 3,58:1 no separador e 4,34:1 no status; corrigidos. Nova amostragem da página de pacientes: 56 textos sem falha; termos em tema claro: 26 sem falha; Mais opções em escuro/alto contraste/texto maior: 57 sem falha; cookies em escuro normal: 31 sem falha; reembolso em escuro normal: 23 sem falha. Trata-se de amostragem, não certificação de todos os estados.
+- Em 320 px, Mais opções e a página de cookies permaneceram sem overflow horizontal com tema escuro, alto contraste e texto maior. Os três atributos de estilo foram conferidos no DOM.
+- Chamadas agora são simulações: captura de mídia e STUN foram removidos. API em NODE_ENV=production foi testada recusando inicialização sem criar arquivo de dados. Headers no-store, origem externa rejeitada e limites de texto também foram verificados em testes.
+
+Limites: sem acesso à configuração de hospedagem/contas GA/GTM, sem inspeção completa de tráfego de produção, sem teste de leitor de tela, zoom completo, dispositivos físicos ou titulares reais. Não houve certificação WCAG ou confirmação integral LGPD. Controlador, contato privado, bases legais de operação real, retenção, contratos, autoria de materiais antigos e requisitos clínicos permanecem pendentes. Arquivos de dados antigos do usuário não foram apagados. Ver [auditoria e riscos](docs/AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md).
+
+---
+
 # Validação do MediSync
 
 ## Simplificação no PC em 5 de novembro de 2026
