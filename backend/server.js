@@ -3,23 +3,36 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 
+// Demo gates below are not production authentication. Fail closed in production.
+if (process.env.NODE_ENV === "production") {
+  console.error("MediSync: uso de produção bloqueado. Esta versão aceita apenas demonstração com dados fictícios.");
+  process.exit(1);
+}
+const allowedOrigins = new Set((process.env.MEDISYNC_ALLOWED_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,http://terminal.local:4173").split(",").map(value => value.trim()));
+const originAllowed = origin => !origin || allowedOrigins.has(origin);
 const app = express();
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  res.set({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Permissions-Policy": "camera=(), microphone=(), geolocation=()" });
+  if (!originAllowed(req.get("Origin"))) return res.status(403).json({ message: "Origem não autorizada para esta demonstração." });
+  next();
+});
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST", "PATCH", "PUT"] }
+  cors: { origin: (origin, callback) => callback(null, originAllowed(origin)), methods: ["GET", "POST", "PATCH", "PUT"] }
 });
 
 const PORT = Number(process.env.PORT || 3000);
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({ origin: (origin, callback) => callback(null, originAllowed(origin)) }));
+app.use(express.json({ limit: "32kb" }));
 
 const users = {
   doctor: {
     id: 1,
     name: "Dra. Ana Martins",
     role: "DOCTOR",
-    crm: "CRM-SP 123456"
+    crm: "DEMO — sem registro profissional"
   },
   patient: {
     id: 101,
@@ -33,16 +46,14 @@ const doctorProfile = {
   userId: 1,
   name: "Dra. Ana Martins",
   role: "DOCTOR",
-  crm: "CRM-SP 123456",
+  crm: "DEMO — sem registro profissional",
   headline: "Cardiologista • Prevenção cardiovascular • Acompanhamento contínuo",
   city: "São Paulo",
   state: "SP",
-  profilePhoto:
-    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=500&q=80",
-  coverPhoto:
-    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1400&q=80",
+  profilePhoto: "/avatar-medica.svg",
+  coverPhoto: "",
   about:
-    "Atuo em cardiologia clínica com foco em prevenção, acompanhamento de hipertensão, check-up cardiovascular e orientação contínua ao paciente.",
+    "Personagem fictício para demonstrar agendamento, acompanhamento e comunicação. Não oferece atendimento médico real.",
   specialties: [
     "Cardiologia",
     "Cardiologia Preventiva",
@@ -69,34 +80,8 @@ const doctorProfile = {
       durationMinutes: 40
     }
   ],
-  experiences: [
-    {
-      id: 1,
-      institution: "Clínica Vida Plena",
-      role: "Cardiologista",
-      period: "2023 — Atual"
-    },
-    {
-      id: 2,
-      institution: "Hospital Central",
-      role: "Médica Cardiologista",
-      period: "2020 — 2023"
-    }
-  ],
-  education: [
-    {
-      id: 1,
-      institution: "Universidade de São Paulo",
-      title: "Residência em Cardiologia",
-      period: "2018 — 2020"
-    },
-    {
-      id: 2,
-      institution: "Faculdade de Medicina",
-      title: "Medicina",
-      period: "2012 — 2017"
-    }
-  ]
+  experiences: [],
+  education: []
 };
 
 const defaultSettings = {
@@ -270,9 +255,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const DATA_FILE = process.env.MEDISYNC_DATA_FILE || path.join(__dirname, "data", "medisync.json");
 let patients = [
-  { id: 101, name: "João Silva", birthDate: "1990-04-12", email: "joao@example.com", phone: "", allergies: "Não informado" },
-  { id: 102, name: "Mariana Costa", birthDate: "1986-07-23", email: "mariana@example.com", phone: "", allergies: "Não informado" },
-  { id: 103, name: "Carlos Henrique", birthDate: "1972-11-05", email: "carlos@example.com", phone: "", allergies: "Não informado" }
+  { id: 101, name: "João Silva", birthDate: "", email: "", phone: "", allergies: "Não informado" },
+  { id: 102, name: "Mariana Costa", birthDate: "", email: "", phone: "", allergies: "Não informado" },
+  { id: 103, name: "Carlos Henrique", birthDate: "", email: "", phone: "", allergies: "Não informado" }
 ];
 let records = [];
 let waitlist = [];
@@ -281,7 +266,7 @@ function snapshot() {
     telemedicineRooms, reports, feedback, ratings, patients, records, waitlist };
 }
 function restore(d) {
-  Object.assign(doctorProfile, d.doctorProfile);
+  Object.assign(doctorProfile, d.doctorProfile, { profilePhoto: "/avatar-medica.svg", coverPhoto: "", crm: "DEMO — sem registro profissional", experiences: [], education: [] });
   ({ settingsByUser, appointments, conversations, notifications, telemedicineRooms,
     reports, feedback, ratings, patients, records } = d);
   waitlist = d.waitlist || [];
@@ -310,6 +295,15 @@ if (fs.existsSync(DATA_FILE)) {
   persist();
 }
 app.use((req, res, next) => {
+  if (!["POST", "PATCH", "PUT"].includes(req.method)) return next();
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ message: "Envie um objeto de dados válido." });
+  const limits = { details: 1000, subject: 120, message: 1000, content: 1000, comment: 1000, reason: 1000, summary: 10000, plan: 10000 };
+  for (const [key, limit] of Object.entries(limits)) {
+    if (req.body[key] !== undefined && (typeof req.body[key] !== "string" || req.body[key].length > limit)) return res.status(400).json({ message: `O campo ${key} deve ter até ${limit} caracteres de teste, sem dados pessoais.` });
+  }
+  next();
+});
+app.use((req, res, next) => {
   if (!["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) return next();
   const before = JSON.parse(JSON.stringify(snapshot()));
   const json = res.json.bind(res);
@@ -333,20 +327,23 @@ function doctorOnly(req, res, next) {
   next();
 }
 const clean = value => typeof value === "string" ? value.trim() : "";
+app.get("/api/privacy/status", (_, res) => res.json({ mode: "academic-demo", realPatientDataAllowed: false, analytics: false, marketing: false, mediaCapture: false, controllerConfigured: false, privateContactConfigured: false }));
 app.get("/api/patients", doctorOnly, (_, res) => res.json(patients));
 app.post("/api/patients", doctorOnly, (req, res) => {
   const name = clean(req.body.name);
-  const birthDate = clean(req.body.birthDate);
-  if (name.length < 3 || name.length > 120) return res.status(400).json({ message: "Informe o nome completo (3 a 120 caracteres)." });
-  if (birthDate && (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || !Number.isFinite(Date.parse(birthDate)) || Date.parse(birthDate) > Date.now())) return res.status(400).json({ message: "Data de nascimento inválida." });
-  const patient = { id: Date.now(), name, birthDate, email: clean(req.body.email), phone: clean(req.body.phone), allergies: clean(req.body.allergies) || "Não informado" };
+  if (Object.keys(req.body).some(key => key !== "name")) return res.status(400).json({ message: "O cadastro de demonstração aceita somente apelido fictício; não envie dados pessoais ou de saúde." });
+  const birthDate = "";
+  if (!/^Paciente de teste(?: [0-9]{1,4})?$/iu.test(name)) return res.status(400).json({ message: "Use apenas Paciente de teste seguido, se desejar, de um número (ex.: Paciente de teste 1)." });
+  const patient = { id: Date.now(), name, birthDate, email: "", phone: "", allergies: "Não informado" };
   patients.push(patient);
   res.status(201).json(patient);
 });
 app.patch("/api/doctor/profile", doctorOnly, (req, res) => {
-  const fields = ["name", "crm", "headline", "city", "state", "about"];
+  const fields = ["name", "headline", "city", "state", "about"];
+  if (req.body.crm !== undefined && req.body.crm !== "DEMO — sem registro profissional") return res.status(400).json({ message: "O perfil fictício não aceita um registro profissional real." });
+  if (!Array.isArray(req.body.specialties) || req.body.specialties.length > 12) return res.status(400).json({ message: "Informe até 12 especialidades de demonstração." });
   if (fields.some(key => !clean(req.body[key]) || clean(req.body[key]).length > 3000)) return res.status(400).json({ message: "Preencha todos os campos do perfil." });
-  const specialties = (req.body.specialties || []).filter(x => typeof x === "string" && x.trim()).map(x => x.trim());
+  const specialties = (req.body.specialties || []).filter(x => typeof x === "string" && x.trim() && x.length <= 80).map(x => x.trim());
   if (!specialties.length) return res.status(400).json({ message: "Informe pelo menos uma especialidade." });
   for (const key of fields) doctorProfile[key] = clean(req.body[key]);
   doctorProfile.specialties = specialties;
@@ -575,7 +572,8 @@ app.get("/api/doctor/profile", (_, res) => {
   res.json({
     ...doctorProfile,
     ratingAverage: average,
-    ratingCount: doctorRatings.length
+    ratingCount: doctorRatings.length,
+    demoOnly: true
   });
 });
 
@@ -597,6 +595,16 @@ app.get("/api/settings/:userId", (req, res) => {
 app.patch("/api/settings/:userId", (req, res) => {
   const userId = Number(req.params.userId);
   const current = getSettings(userId);
+  const allowed = Object.keys(defaultSettings);
+  const booleans = ["narratorEnabled", "highContrast", "largerText", "readReceiptsEnabled"];
+  const preferences = req.body.notificationPreferences;
+  if (Object.keys(req.body).some(key => !allowed.includes(key)) ||
+      booleans.some(key => req.body[key] !== undefined && typeof req.body[key] !== "boolean") ||
+      (req.body.theme !== undefined && !["light", "dark"].includes(req.body.theme)) ||
+      (req.body.chatMode !== undefined && !["OPEN", "HIDDEN", "PRIORITY"].includes(req.body.chatMode)) ||
+      (preferences !== undefined && (!preferences || typeof preferences !== "object" || Array.isArray(preferences) || Object.entries(preferences).some(([key, value]) => !Object.hasOwn(defaultSettings.notificationPreferences, key) || typeof value !== "boolean")))) {
+    return res.status(400).json({ message: "Envie somente as preferências de demonstração disponíveis, sem dados pessoais." });
+  }
 
   if (
     typeof req.body.readReceiptsEnabled !== "undefined" &&
@@ -992,8 +1000,15 @@ app.get("/api/ratings/summary/:userId", (req, res) => {
     userId,
     average,
     count: userRatings.length,
+    demoOnly: true,
     ratings: userRatings
   });
+});
+
+app.use((error, req, res, next) => {
+  if (error?.type === "entity.too.large") return res.status(413).json({ message: "Conteúdo de teste acima do limite permitido." });
+  if (error instanceof SyntaxError) return res.status(400).json({ message: "Formato JSON inválido." });
+  res.status(500).json({ message: "Não foi possível concluir esta operação de teste." });
 });
 
 io.on("connection", (socket) => {
@@ -1019,29 +1034,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("webrtc:offer", ({ roomId, offer }) => {
-    socket.to(`call:${roomId}`).emit("webrtc:offer", {
-      offer,
-      from: socket.id
-    });
-  });
 
-  socket.on("webrtc:answer", ({ roomId, answer }) => {
-    socket.to(`call:${roomId}`).emit("webrtc:answer", {
-      answer,
-      from: socket.id
-    });
-  });
-
-  socket.on("webrtc:ice-candidate", ({ roomId, candidate }) => {
-    socket.to(`call:${roomId}`).emit("webrtc:ice-candidate", {
-      candidate,
-      from: socket.id
-    });
-  });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, "127.0.0.1", () => {
   console.log(`MediSync API + Socket.IO em http://localhost:${PORT}`);
 });
 
