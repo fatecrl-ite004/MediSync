@@ -6,7 +6,7 @@ import {
   useState
 } from "react";
 import { io, Socket } from "socket.io-client";
-import { DoctorWorkspace, ProfileEditor, Patient, ClinicalRecord, statusLabel } from "./DoctorWorkspace";
+import { DoctorWorkspace, ProfileEditor, Patient, ClinicalRecord, statusLabel, Modal } from "./DoctorWorkspace";
 
 import { PatientExperience, PatientBooking, PatientWaitlist, PatientVisit } from "./PatientExperience";
 import { UiIcon } from "./UiIcon";
@@ -144,7 +144,7 @@ function StarRating({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="stars" aria-label={`Nota atual: ${value} de 5`}>
+    <div className="stars" role="group" aria-label={`Nota atual: ${value} de 5`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           type="button"
@@ -152,6 +152,7 @@ function StarRating({
           className={star <= value ? "active" : ""}
           onClick={() => onChange(star)}
           aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+          aria-pressed={star === value}
         >
           ★
         </button>
@@ -189,15 +190,8 @@ export default function App() {
     useState<Appointment | null>(null);
   const [ratingStars, setRatingStars] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
-  const [callConsent, setCallConsent] = useState(false);
-  const [consentAccepted, setConsentAccepted] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
-  const peerRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (!user || !profile || !settings) return;
@@ -302,141 +296,6 @@ export default function App() {
       socketRef.current = null;
     };
   }, [user]);
-
-  useEffect(() => {
-    if (!activeRoom || !user || !callConsent) return;
-
-    let cancelled = false;
-    const pendingCandidates: RTCIceCandidateInit[] = [];
-    async function flushCandidates(pc: RTCPeerConnection) {
-      for (const candidate of pendingCandidates.splice(0)) await pc.addIceCandidate(candidate);
-    }
-
-    async function startMedia() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: activeRoom?.mode === "VIDEO"
-        });
-
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        localStreamRef.current = stream;
-
-        if (localVideoRef.current && activeRoom?.mode === "VIDEO") {
-          localVideoRef.current.srcObject = stream;
-        }
-
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-        });
-
-        peerRef.current = pc;
-
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-        pc.ontrack = (event) => {
-          const remoteStream = event.streams[0];
-          if (activeRoom?.mode === "VIDEO" && remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
-          if (activeRoom?.mode === "VOICE" && remoteAudioRef.current) {
-            remoteAudioRef.current.srcObject = remoteStream;
-          }
-        };
-
-        pc.onicecandidate = (event) => {
-          if (event.candidate) {
-            socketRef.current?.emit("webrtc:ice-candidate", {
-              roomId: activeRoom?.id,
-              candidate: event.candidate
-            });
-          }
-        };
-
-        const onPeerJoined = async () => {
-          if (user?.role !== "DOCTOR" || pc.signalingState !== "stable") return;
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socketRef.current?.emit("webrtc:offer", {
-            roomId: activeRoom?.id,
-            offer
-          });
-        };
-
-        const onOffer = async ({ offer }: any) => {
-          await pc.setRemoteDescription(new RTCSessionDescription(offer));
-          await flushCandidates(pc);
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socketRef.current?.emit("webrtc:answer", {
-            roomId: activeRoom?.id,
-            answer
-          });
-        };
-
-        const onAnswer = async ({ answer }: any) => {
-          await pc.setRemoteDescription(new RTCSessionDescription(answer));
-          await flushCandidates(pc);
-        };
-
-        const onCandidate = async ({ candidate }: any) => {
-          try {
-            if (!pc.remoteDescription) pendingCandidates.push(candidate);
-            else await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch {
-            // Em protótipo, candidatos fora de ordem podem ser ignorados.
-          }
-        };
-
-        const onEnded = () => {
-          setToast("A chamada foi encerrada pelo médico.");
-          leaveCall();
-        };
-
-        socketRef.current?.on("call:peer-joined", onPeerJoined);
-        socketRef.current?.on("webrtc:offer", onOffer);
-        socketRef.current?.on("webrtc:answer", onAnswer);
-        socketRef.current?.on("webrtc:ice-candidate", onCandidate);
-        socketRef.current?.on("call:ended", onEnded);
-        socketRef.current?.emit("call:join", { roomId: activeRoom?.id });
-
-        return () => {
-          socketRef.current?.off("call:peer-joined", onPeerJoined);
-          socketRef.current?.off("webrtc:offer", onOffer);
-          socketRef.current?.off("webrtc:answer", onAnswer);
-          socketRef.current?.off("webrtc:ice-candidate", onCandidate);
-          socketRef.current?.off("call:ended", onEnded);
-        };
-      } catch (error) {
-        setToast(
-          error instanceof Error
-            ? `Não foi possível acessar câmera/microfone: ${error.message}`
-            : "Não foi possível acessar câmera/microfone."
-        );
-      }
-    }
-
-    let cleanup: undefined | (() => void);
-
-    startMedia().then((fn) => {
-      if (cancelled) fn?.();
-      else cleanup = fn;
-    });
-
-    return () => {
-      cancelled = true;
-      socketRef.current?.emit("call:leave", { roomId: activeRoom.id });
-      cleanup?.();
-      peerRef.current?.close();
-      peerRef.current = null;
-      localStreamRef.current?.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    };
-  }, [activeRoom, user, callConsent]);
 
   function remember() {
     setHistory(old => [...old.slice(-29), { page, conversation: currentConversation, patientId: selectedPatient, scroll: window.scrollY }]);
@@ -791,19 +650,13 @@ export default function App() {
   }
 
   function enterRoom(room: Room) {
-    setConsentAccepted(false);
-    setCallConsent(false);
+
     setPage("telemedicine");
     setActiveRoom(room);
   }
 
   function leaveCall() {
-    peerRef.current?.close();
-    peerRef.current = null;
-    localStreamRef.current?.getTracks().forEach((track) => track.stop());
-    localStreamRef.current = null;
-    setConsentAccepted(false);
-    setCallConsent(false);
+
     setActiveRoom(null);
   }
 
@@ -976,14 +829,14 @@ export default function App() {
       <section className="login-card">
         <span className="eyebrow">Bem-vindo ao MediSync</span>
         <h1 tabIndex={-1}>Sua consulta, de um jeito simples.</h1>
-        <p>Marque um horário, acompanhe suas consultas e converse com sua médica.</p>
+        <p>Experimente agendamentos, consultas e conversas com personagens fictícios.</p>
         <div className="login-choices">
           <button className="login-choice patient-choice" disabled={loginBusy} onClick={() => login("patient")}><span className="shortcut-icon"><UiIcon name="profile" size={26} /></span><span><strong>Sou paciente</strong><small>Quero cuidar das minhas consultas</small></span><UiIcon name="arrow" /></button>
           <button className="login-choice" disabled={loginBusy} onClick={() => login("doctor")}><span className="shortcut-icon"><UiIcon name="appointments" size={26} /></span><span><strong>Sou profissional de saúde</strong><small>Quero organizar meus atendimentos</small></span><UiIcon name="arrow" /></button>
         </div>
         {loginBusy && <p role="status">Preparando sua área…</p>}
         {loginError && <p className="patient-error" role="alert">{loginError}</p>}
-        <div className="login-demo"><UiIcon name="help" size={19} /><p><strong>Você está em uma demonstração.</strong><br />Paciente: João Silva · Médica: Dra. Ana Martins.<br />Dados fictícios. Não é necessário criar uma conta.</p></div>
+        <div className="login-demo"><UiIcon name="help" size={19} /><p><strong>Você está em uma demonstração.</strong><br />Paciente: João Silva · Médica: Dra. Ana Martins.<br />Perfis compartilhados, sem autenticação real. Não insira dados pessoais ou de saúde. Não é necessário criar uma conta.</p></div>
       </section>
     </main>;
   }
@@ -1049,7 +902,7 @@ export default function App() {
               <img
                 className="profile-photo"
                 src={profile.profilePhoto} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = "/avatar-medica.svg"; }}
-                alt={`Foto de ${profile.name}`}
+                alt={`Ilustração do perfil fictício de ${profile.name}`}
               />
 
               <div className="profile-title">
@@ -1072,7 +925,7 @@ export default function App() {
           </article>
 
           <article className="card section-card">
-            <h2>Sobre</h2>
+            <h2>Sobre o perfil de demonstração</h2><p className="form-privacy-note">Personagem fictício. Formação, experiência e CRM não são credenciais verificadas.</p>
             <p>{profile.about}</p>
           </article>
 
@@ -1121,7 +974,7 @@ export default function App() {
 
         <aside className="card profile-side">
           <span className="eyebrow">Reputação</span>
-          <h3>Avaliação profissional</h3>
+          <h3>Avaliações da simulação</h3>
           <div className="rating-summary">
             <strong>
               {profile.ratingAverage
@@ -1132,8 +985,8 @@ export default function App() {
           </div>
           <p>
             {profile.ratingCount
-              ? `${profile.ratingCount} avaliações recebidas`
-              : "Ainda sem avaliações registradas nesta demonstração."}
+              ? `${profile.ratingCount} avaliações de teste (não são depoimentos reais)`
+              : "Sem depoimentos de pacientes reais. As avaliações deste fluxo são apenas testes."}
           </p>
         </aside>
       </div>
@@ -1307,7 +1160,8 @@ export default function App() {
               Detalhes
               <textarea
                 name="details"
-                placeholder="Descreva brevemente o problema."
+                maxLength={1000}
+                placeholder="Descreva um problema fictício, sem dados pessoais."
               />
             </label>
             <div className="actions">
@@ -1346,9 +1200,12 @@ export default function App() {
           ))}
         </div>
 
+        <p className="form-privacy-note" id="chat-privacy">Conversa de teste compartilhada. Não envie dados pessoais, exames ou informações de saúde.</p>
         <form className="message-form" onSubmit={sendMessage}>
           <input
             name="message"
+            maxLength={1000}
+            aria-describedby="chat-privacy"
             aria-label="Mensagem"
             placeholder="Mensagem"
             autoComplete="off"
@@ -1365,153 +1222,7 @@ export default function App() {
 
   function renderTelemedicine() {
     if (!user || !settings) return null;
-    if (activeRoom) {
-      return (
-        <>
-          <div className="page-heading">
-            <span className="eyebrow">Telemedicina</span>
-            <h1 tabIndex={-1}>
-              {activeRoom.mode === "VIDEO"
-                ? "Videochamada"
-                : "Chamada de voz"}
-            </h1>
-          </div>
-
-          {!callConsent ? (
-            <section className="card consent-card">
-              <h2>Antes de entrar</h2>
-              <p>
-                Esta sala é vinculada à consulta. O protótipo não grava
-                áudio ou vídeo. Telemedicina não deve ser usada como canal
-                de emergência.
-              </p>
-
-              <label className="consent-check">
-                <input
-                  type="checkbox"
-                  checked={consentAccepted}
-                  onChange={(event) =>
-                    setConsentAccepted(event.target.checked)
-                  }
-                />
-                <span>
-                  Autorizo o uso de câmera/microfone para esta chamada.
-                </span>
-              </label>
-
-              <div className="actions">
-                <button
-                  className="btn primary"
-                  disabled={!consentAccepted}
-                  onClick={() => setCallConsent(true)}
-                >
-                  Entrar na sala
-                </button>
-                <button className="btn" onClick={leaveCall}>
-                  Voltar
-                </button>
-              </div>
-            </section>
-          ) : (
-            <section className="call-stage card">
-              <div className="call-top">
-                <div>
-                  <span className="eyebrow">
-                    Sala {activeRoom.code}
-                  </span>
-                  <h2>
-                    {activeRoom.mode === "VIDEO"
-                      ? "Consulta por vídeo"
-                      : "Consulta por voz"}
-                  </h2>
-                </div>
-
-                <span className="live-badge">● Em chamada</span>
-              </div>
-
-              {activeRoom.mode === "VIDEO" ? (
-                <div className="video-grid">
-                  <div className="video-tile">
-                    <video
-                      ref={remoteVideoRef}
-                      autoPlay
-                      playsInline
-                    />
-                    <span>Participante remoto</span>
-                  </div>
-                  <div className="video-tile local">
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                    />
-                    <span>Você</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="voice-stage">
-                  <div className="voice-avatar">
-                    {user.role === "DOCTOR" ? "J" : "A"}
-                  </div>
-                  <h3>
-                    {user.role === "DOCTOR"
-                      ? "João Silva"
-                      : "Dra. Ana Martins"}
-                  </h3>
-                  <p>Aguardando/recebendo áudio do outro participante.</p>
-                  <audio ref={remoteAudioRef} autoPlay />
-                </div>
-              )}
-
-              <div className="call-controls">
-                <button
-                  className="round-control"
-                  onClick={() => {
-                    const track =
-                      localStreamRef.current?.getAudioTracks()[0];
-                    if (track) track.enabled = !track.enabled;
-                    setToast("Microfone alternado.");
-                  }}
-                >
-                  🎙
-                </button>
-
-                {activeRoom.mode === "VIDEO" && (
-                  <button
-                    className="round-control"
-                    onClick={() => {
-                      const track =
-                        localStreamRef.current?.getVideoTracks()[0];
-                      if (track) track.enabled = !track.enabled;
-                      setToast("Câmera alternada.");
-                    }}
-                  >
-                    📹
-                  </button>
-                )}
-
-                {user.role === "DOCTOR" ? (
-                  <button
-                    className="round-control end"
-                    onClick={endRoom}
-                  >
-                    Encerrar
-                  </button>
-                ) : (
-                  <button
-                    className="round-control end"
-                    onClick={leaveCall}
-                  >
-                    Sair
-                  </button>
-                )}
-              </div>
-            </section>
-          )}
-        </>
-      );
-    }
+    if (activeRoom) return <section className="card simulated-call"><span className="eyebrow">Simulação de chamada</span><h1 tabIndex={-1}>Sala de demonstração</h1><p>Câmera e microfone desativados. Esta sala não transmite áudio ou vídeo e não oferece atendimento médico real.</p><p>Consulta fictícia · Sala {activeRoom.code}</p><div className="actions"><button className="btn" onClick={leaveCall}>Sair da sala</button>{user.role === "DOCTOR" && <button className="btn danger" onClick={endRoom}>Encerrar sala de teste</button>}</div></section>;
 
     return (
       <>
@@ -1624,9 +1335,7 @@ export default function App() {
             <span className="eyebrow">Boas práticas</span>
             <h3>Privacidade por padrão</h3>
             <p>
-              A gravação não está habilitada. Em produção, a sala deverá
-              ter autenticação forte, expiração, HTTPS e infraestrutura
-              própria de mídia/TURN.
+              A demonstração não captura câmera ou microfone e não transmite mídia. Um serviço real exige identidade verificada, autorização, revisão de segurança e regras específicas para telemedicina.
             </p>
           </aside>
         </div>
@@ -1860,7 +1569,7 @@ export default function App() {
               MediSync.
             </p>
 
-            <form className="feedback-form" onSubmit={submitFeedback}>
+            <form className="feedback-form" onSubmit={submitFeedback}><p className="form-privacy-note">Sugestão de teste guardada no servidor. Não envie dados pessoais ou de saúde. Este formulário não é um canal privado de direitos LGPD. <a href="#/privacidade">Leia o aviso de privacidade</a>.</p>
               <label>
                 Tipo
                 <select name="category" defaultValue="SUGGESTION">
@@ -1872,12 +1581,12 @@ export default function App() {
 
               <label>
                 Assunto
-                <input name="subject" required />
+                <input name="subject" required maxLength={120} />
               </label>
 
               <label>
                 Mensagem
-                <textarea name="message" required />
+                <textarea name="message" required maxLength={1000} />
               </label>
 
               <button className="btn primary" type="submit">
@@ -1916,8 +1625,7 @@ export default function App() {
             <details>
               <summary>Como funciona a avaliação?</summary>
               <p>
-                Após uma consulta concluída, médico e paciente podem avaliar
-                um ao outro de 1 a 5 estrelas.
+                Após uma consulta fictícia concluída, os perfis de teste podem atribuir de 1 a 5 estrelas. Não são avaliações de pacientes reais.
               </p>
             </details>
           </section>
@@ -2080,9 +1788,8 @@ export default function App() {
       {profileEditing && <ProfileEditor profile={profile} request={doctorRequest} onClose={() => setProfileEditing(false)} onSaved={updated => { setProfile((old: any) => ({ ...old, ...updated })); setUser(old => old ? ({ ...old, name: updated.name, crm: updated.crm }) : old); setToast("Perfil atualizado."); }} />}
 
       {ratingAppointment && (
-        <div className="modal-backdrop">
-          <section className="modal-card">
-            <span className="eyebrow">Avaliação</span>
+        <Modal title="Avaliação de teste" onClose={() => setRatingAppointment(null)}>
+            <span className="eyebrow">Avaliação de teste</span>
             <h2>
               Avaliar{" "}
               {user.role === "DOCTOR"
@@ -2090,8 +1797,7 @@ export default function App() {
                 : ratingAppointment.doctorName}
             </h2>
             <p>
-              A avaliação é vinculada à consulta concluída e vai de 1 a 5
-              estrelas.
+              Avaliação de teste de uma consulta fictícia, de 1 a 5 estrelas. Não é um depoimento de paciente real. Não inclua dados pessoais ou de saúde.
             </p>
 
             <StarRating
@@ -2102,6 +1808,7 @@ export default function App() {
             <label>
               Comentário opcional
               <textarea
+                maxLength={1000}
                 value={ratingComment}
                 onChange={(event) =>
                   setRatingComment(event.target.value)
@@ -2123,8 +1830,7 @@ export default function App() {
                 Cancelar
               </button>
             </div>
-          </section>
-        </div>
+        </Modal>
       )}
 
       {toast && <div className="toast"><span role="status">{toast}</span><button aria-label="Fechar aviso" onClick={() => setToast("")}>×</button></div>}
