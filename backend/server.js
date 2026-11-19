@@ -326,6 +326,13 @@ function doctorOnly(req, res, next) {
   if (req.get("X-Demo-Role") !== "DOCTOR") return res.status(403).json({ message: "Ação disponível apenas na área médica." });
   next();
 }
+function endDemoRoom(room) {
+  room.status = "ENDED";
+  room.endedAt = new Date().toISOString();
+  const appointment = appointments.find(a => a.id === room.appointmentId);
+  if (appointment?.telemedicineRoomId === room.id) appointment.telemedicineRoomId = null;
+  io.to(`user:${room.doctorId}`).to(`user:${room.patientId}`).to(`call:${room.id}`).emit("call:ended", { roomId: room.id });
+}
 const clean = value => typeof value === "string" ? value.trim() : "";
 app.get("/api/privacy/status", (_, res) => res.json({ mode: "academic-demo", realPatientDataAllowed: false, analytics: false, marketing: false, mediaCapture: false, controllerConfigured: false, privateContactConfigured: false }));
 app.get("/api/patients", doctorOnly, (_, res) => res.json(patients));
@@ -393,10 +400,7 @@ app.patch("/api/appointments/:id", doctorOnly, (req, res) => {
     a.status = req.body.status;
     if (a.status === "CANCELLED") { a.cancellationReason = clean(req.body.reason); notifyReleasedSlot(a); }
     if (["COMPLETED", "CANCELLED"].includes(a.status)) {
-      telemedicineRooms.filter(r => r.appointmentId === a.id && r.status === "OPEN").forEach(r => {
-        r.status = "ENDED"; r.endedAt = new Date().toISOString();
-        io.to(`call:${r.id}`).emit("call:ended", { roomId: r.id });
-      });
+      telemedicineRooms.filter(r => r.appointmentId === a.id && r.status === "OPEN").forEach(endDemoRoom);
     }
   }
   pushNotification(a.patientId, "appointments", "Consulta atualizada", "O médico atualizou seu atendimento. Confira a agenda.");
@@ -471,10 +475,7 @@ app.post("/api/patient/appointments/:id/cancel", patientOnly, (req, res) => {
   if (appointment.status !== "CONFIRMED" || Date.parse(appointment.startsAt) <= Date.now()) return res.status(409).json({ message: "Esta consulta já não pode ser cancelada pelo aplicativo." });
   appointment.status = "CANCELLED";
   appointment.cancellationReason = "Cancelada pelo paciente";
-  telemedicineRooms.filter(r => r.appointmentId === appointment.id && r.status === "OPEN").forEach(r => {
-    r.status = "ENDED"; r.endedAt = new Date().toISOString();
-    io.to(`call:${r.id}`).emit("call:ended", { roomId: r.id });
-  });
+  telemedicineRooms.filter(r => r.appointmentId === appointment.id && r.status === "OPEN").forEach(endDemoRoom);
   notifyReleasedSlot(appointment);
   pushNotification(users.patient.id, "appointments", "Consulta cancelada", "O horário foi liberado. Você pode marcar uma nova consulta quando quiser.");
   pushNotification(1, "appointments", "Paciente cancelou uma consulta", "O horário está disponível para outro atendimento.");
@@ -589,7 +590,7 @@ app.get("/api/appointments", (req, res) => {
 });
 
 app.get("/api/settings/:userId", (req, res) => {
-  res.json(getSettings(Number(req.params.userId)));
+  res.json({ ...getSettings(Number(req.params.userId)), chatMode: getSettings(1).chatMode });
 });
 
 app.patch("/api/settings/:userId", (req, res) => {
@@ -613,6 +614,8 @@ app.patch("/api/settings/:userId", (req, res) => {
     delete req.body.readReceiptsEnabled;
   }
 
+  if (userId !== 1 && req.body.chatMode !== undefined) return res.status(403).json({ message: "Apenas o médico pode definir a disponibilidade do chat." });
+
   settingsByUser[userId] = {
     ...current,
     ...req.body,
@@ -622,7 +625,10 @@ app.patch("/api/settings/:userId", (req, res) => {
     }
   };
 
-  res.json(settingsByUser[userId]);
+  res.json({ ...settingsByUser[userId], chatMode: getSettings(1).chatMode });
+  if (res.statusCode < 400 && userId === 1 && req.body.chatMode !== undefined) {
+    io.emit("chat:availability", { mode: getSettings(1).chatMode });
+  }
 });
 
 app.get("/api/notifications", (req, res) => {
@@ -702,6 +708,9 @@ app.post("/api/conversations/start", (req, res) => {
   conversations.unshift(conversation);
   appointment.conversationId = conversation.id;
   res.status(201).json(conversation);
+  if (res.statusCode < 400) {
+    io.to(`user:${conversation.doctorId}`).to(`user:${conversation.patientId}`).emit("conversation:created", conversation);
+  }
 });
 
 app.patch("/api/conversations/:id/mute", (req, res) => {
@@ -759,7 +768,7 @@ app.post("/api/conversations/:id/messages", (req, res) => {
   conversation.messages.push(message);
   conversation.updatedAt = message.createdAt;
 
-  io.to(`conversation:${conversation.id}`).emit("chat:message", {
+  io.to(`user:${conversation.doctorId}`).to(`user:${conversation.patientId}`).to(`conversation:${conversation.id}`).emit("chat:message", {
     conversationId: conversation.id,
     message
   });
@@ -803,7 +812,7 @@ app.patch("/api/conversations/:id/read", (req, res) => {
     }
   });
 
-  io.to(`conversation:${conversation.id}`).emit("chat:read", {
+  io.to(`user:${conversation.doctorId}`).to(`user:${conversation.patientId}`).to(`conversation:${conversation.id}`).emit("chat:read", {
     conversationId: conversation.id,
     readerId
   });
@@ -861,6 +870,7 @@ app.post("/api/telemedicine/rooms", (req, res) => {
   );
 
   io.to(`user:${appointment.patientId}`).emit("telemedicine:room-created", room);
+  io.emit("appointments:updated");
 
   res.status(201).json(room);
 });
@@ -890,10 +900,8 @@ app.patch("/api/telemedicine/rooms/:id/end", (req, res) => {
     return res.status(403).json({ message: "Apenas o médico pode encerrar a sala." });
   }
 
-  room.status = "ENDED";
-  room.endedAt = new Date().toISOString();
-
-  io.to(`call:${room.id}`).emit("call:ended", { roomId: room.id });
+  endDemoRoom(room);
+  io.emit("appointments:updated");
   res.json(room);
 });
 
@@ -1012,8 +1020,9 @@ app.use((error, req, res, next) => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("user:join", ({ userId }) => {
+  socket.on("user:join", ({ userId }, acknowledge) => {
     socket.join(`user:${userId}`);
+    if (typeof acknowledge === "function") acknowledge({ ok: true });
   });
 
   socket.on("conversation:join", ({ conversationId }) => {
