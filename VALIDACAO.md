@@ -1,3 +1,20 @@
+# Revisão de apresentação — 19/11/2026
+
+Código conferido a partir da `main` em `6696de7506e5528d89090fe3570e4945ecb56394`, com Node.js 24.22.3 em Linux.
+
+| Verificação | Resultado |
+| --- | --- |
+| Instalação a partir dos locks | Backend e frontend aprovados |
+| Build TypeScript/Vite | Aprovado |
+| `npm --prefix backend test` | 4 testes aprovados |
+| `npm --prefix frontend test` | 6 testes aprovados |
+| `npm run test:realtime` | 1 teste de integração aprovado, cobrindo dois clientes, conversas, regras e salas |
+| Navegador | Mensagem atualiza lista no outro perfil, sala aparece nos detalhes, encerramento chega ao paciente e regra de chat é sincronizada |
+
+[Correções, limites e roteiro da apresentação](docs/REVISAO-APRESENTACAO-20261119.md). O novo teste usa a porta 3195 e arquivos temporários próprios. Os testes anteriores mantêm suas portas e não alteram os dados da demonstração. Windows real, rede da faculdade, dispositivos físicos e calendário externo não foram verificados aqui.
+
+---
+
 # Preparação da entrega — 15/11/2026
 
 Verificações executadas com Node.js 24.22.1:

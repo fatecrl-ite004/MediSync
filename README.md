@@ -6,6 +6,8 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e sa
 
 [Documentação e apresentação da P1 na wiki](https://github.com/fatecrl-ite004/MediSync/wiki)
 
+**Revisão para apresentação — 19/11/2026:** [correções verificadas e roteiro de conferência](docs/REVISAO-APRESENTACAO-20261119.md). Mensagens, disponibilidade do chat e encerramento de salas de teste são sincronizados entre os dois perfis.
+
 **Entrega acadêmica — 15/11/2026:** [índice dos artefatos](docs/ENTREGA.md), [roteiro de demonstração](docs/DEMONSTRACAO.md), [plano de marketing com anexos](docs/Plano-de-Marketing-MediSync-com-Anexos.docx) e [telas web/mobile](docs/anexos/README.md). As fontes das páginas da wiki estão em [docs/wiki](docs/wiki).
 
 > **Revisão de 14/11/2026:** [privacidade, acessibilidade e riscos pendentes](docs/AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md). A versão continua exclusivamente demonstrativa; não está autorizada para dados reais de saúde nem operação comercial. Páginas públicas em `/#/privacidade`, `/#/termos`, `/#/cookies`, `/#/reembolso`, `/#/responsaveis` e `/#/acessibilidade`.
@@ -93,7 +95,7 @@ npm.cmd --prefix frontend ci
 
 `npm ci` utiliza os arquivos `package-lock.json` versionados para instalar as versões registradas. Aguarde os dois comandos terminarem sem erro. Eles criam uma pasta `node_modules` em cada aplicação.
 
-O `package.json` da raiz oferece apenas o atalho `npm.cmd run dev`; as dependências continuam nos dois subprojetos. Não é necessário executar `npm install` na raiz.
+O `package.json` da raiz oferece os atalhos `npm.cmd run dev` e `npm.cmd run test:realtime`; as dependências continuam nos dois subprojetos. Não é necessário executar `npm install` na raiz.
 
 ### 3. Configurar o ambiente
 
@@ -240,6 +242,14 @@ npm.cmd --prefix frontend test
 Os testes cobrem datas, duração, identidade do evento, caracteres especiais, quebra de linhas UTF-8 e entradas inválidas, além de ciência de armazenamento versionada/expirada e prevenção de reintrodução de mídia e rastreadores. Não dependem de conta de calendário nem de conexão externa. Eles não substituem a conferência de importação no calendário do dispositivo.
 
 Utilize `npm.cmd --prefix frontend run build` para verificar a compilação. Os resultados e limites da validação estão em [VALIDACAO.md](VALIDACAO.md).
+
+Para conferir a comunicação entre dois perfis, depois de instalar **backend e frontend**, execute também na raiz:
+
+```powershell
+npm.cmd run test:realtime
+```
+
+Esse teste usa o Socket.IO já instalado no frontend e uma API temporária na porta **3195**, sem alterar os dados da demonstração. Verifica conversas novas, mensagens com chat silenciado, recebimento sem abrir a conversa, confirmação de leitura, ausência de duplicação, criação e encerramento de salas e aplicação das regras do médico no paciente. O teste encerra o servidor e remove apenas seus arquivos temporários.
 
 ### Solução de problemas
 
