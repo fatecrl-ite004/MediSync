@@ -192,6 +192,8 @@ export default function App() {
   const [ratingComment, setRatingComment] = useState("");
 
   const socketRef = useRef<Socket | null>(null);
+  const currentConversationRef = useRef<Conversation | null>(null);
+  currentConversationRef.current = currentConversation;
 
   useEffect(() => {
     if (!user || !profile || !settings) return;
@@ -214,7 +216,23 @@ export default function App() {
 
     const socket = io(SOCKET_URL);
     socketRef.current = socket;
-    socket.on("connect", () => socket.emit("user:join", { userId: user.id }));
+    let connected = true;
+    socket.on("connect", () => socket.emit("user:join", { userId: user.id }, async () => {
+      try {
+        const [visits, updatedRooms, updatedSettings, updatedNotifications, chats] = await Promise.all([
+          api<Appointment[]>(`/appointments?role=${user.role}&userId=${user.id}`),
+          api<Room[]>(`/telemedicine/rooms?role=${user.role}&userId=${user.id}`),
+          api<Settings>(`/settings/${user.id}`),
+          api<any[]>(`/notifications?userId=${user.id}`),
+          api<Conversation[]>(`/conversations?role=${user.role}&userId=${user.id}`)
+        ]);
+        if (!connected) return;
+        setAppointments(visits); setRooms(updatedRooms); setSettings(updatedSettings);
+        setNotifications(updatedNotifications); setConversations(chats);
+        setCurrentConversation(current => current ? chats.find(chat => chat.id === current.id) || null : null);
+        setActiveRoom(current => current ? updatedRooms.find(room => room.id === current.id && room.status === "OPEN") || null : null);
+      } catch { if (connected) setToast("Não foi possível sincronizar os dados. Verifique a conexão."); }
+    }));
 
     socket.on("appointments:updated", () => {
       api<Appointment[]>(`/appointments?role=${user.role}&userId=${user.id}`).then(setAppointments).catch(() => setToast("Não foi possível atualizar a agenda."));
@@ -230,11 +248,30 @@ export default function App() {
       setRooms((old) =>
         old.some((item) => item.id === room.id) ? old : [room, ...old]
       );
+      setAppointments(old => old.map(appointment => appointment.id === room.appointmentId ? { ...appointment, telemedicineRoomId: room.id } : appointment));
       setToast(
         room.mode === "VIDEO"
           ? "Nova videochamada disponível."
           : "Nova chamada de voz disponível."
       );
+    });
+
+    socket.on("call:ended", ({ roomId }: { roomId: number }) => {
+      setRooms(old => old.map(room => room.id === roomId ? { ...room, status: "ENDED" } : room));
+      setAppointments(old => old.map(appointment => appointment.telemedicineRoomId === roomId ? { ...appointment, telemedicineRoomId: null } : appointment));
+      setActiveRoom(current => current?.id === roomId ? null : current);
+      setToast("Sala de demonstração encerrada.");
+    });
+
+    socket.on("conversation:created", (conversation: Conversation) => {
+      setConversations(old => old.some(chat => chat.id === conversation.id) ? old : [conversation, ...old]);
+      setAppointments(old => old.map(appointment => appointment.id === conversation.appointmentId ? { ...appointment, conversationId: conversation.id } : appointment));
+    });
+
+    socket.on("chat:availability", ({ mode }: { mode: Settings["chatMode"] }) => {
+      setSettings(current => current ? { ...current, chatMode: mode } : current);
+      if (mode === "HIDDEN") { setCurrentConversation(null); setConversations([]); }
+      else api<Conversation[]>(`/conversations?role=${user.role}&userId=${user.id}`).then(chats => { if (connected) setConversations(chats); }).catch(() => {});
     });
 
     socket.on("chat:message", ({ conversationId, message }) => {
@@ -265,6 +302,9 @@ export default function App() {
           updatedAt: message.createdAt
         };
       });
+      if (currentConversationRef.current?.id === conversationId && message.senderId !== user.id) {
+        api(`/conversations/${conversationId}/read`, { method: "PATCH", body: JSON.stringify({ readerId: user.id, readerRole: user.role }) }).catch(() => {});
+      }
     });
 
     socket.on("chat:read", ({ conversationId, readerId }) => {
@@ -292,6 +332,7 @@ export default function App() {
     });
 
     return () => {
+      connected = false;
       socket.disconnect();
       socketRef.current = null;
     };
@@ -350,7 +391,6 @@ export default function App() {
         body: JSON.stringify({ role })
       });
 
-      setUser(logged);
       setPageRaw("dashboard");
       setHistory([]);
       setCurrentConversation(null);
@@ -391,6 +431,7 @@ export default function App() {
       } catch {
         setConversations([]);
       }
+      setUser(logged);
     } catch (error) {
       setLoginError(error instanceof Error && error.message !== "Failed to fetch" ? error.message : "Não conseguimos conectar. Verifique se o servidor está ligado e tente novamente.");
     } finally { setLoginBusy(false); }
@@ -819,6 +860,8 @@ export default function App() {
 
   function logout() {
     leaveCall(); setUser(null); setProfile(null); setSettings(null); setHistory([]); setToast("");
+    setCurrentConversation(null); setConversations([]); setRooms([]); setPatients([]); setRecords([]);
+    setProfileEditing(false); setReportOpen(false); setRatingAppointment(null);
     document.documentElement.dataset.theme = "light";
     document.documentElement.dataset.text = "normal";
     document.documentElement.dataset.contrast = "normal";
@@ -943,7 +986,7 @@ export default function App() {
             </div>
           </article>
 
-          <article className="card section-card">
+          {profile.experiences.length > 0 && <article className="card section-card">
             <h2>Experiência</h2>
             {profile.experiences.map((item: any) => (
               <div className="timeline-item" key={item.id}>
@@ -955,9 +998,9 @@ export default function App() {
                 </div>
               </div>
             ))}
-          </article>
+          </article>}
 
-          <article className="card section-card">
+          {profile.education.length > 0 && <article className="card section-card">
             <h2>Formação</h2>
             {profile.education.map((item: any) => (
               <div className="timeline-item" key={item.id}>
@@ -969,7 +1012,7 @@ export default function App() {
                 </div>
               </div>
             ))}
-          </article>
+          </article>}
         </section>
 
         <aside className="card profile-side">
@@ -1228,10 +1271,10 @@ export default function App() {
       <>
         <div className="page-heading">
           <span className="eyebrow">Telemedicina</span>
-          <h1 tabIndex={-1}>Chamadas de voz e vídeo</h1>
+          <h1 tabIndex={-1}>Salas de chamada simuladas</h1>
           <p>
-            Apenas o médico pode criar uma sala. O paciente entra quando
-            uma sala vinculada à sua consulta estiver disponível.
+            Apenas o médico pode criar uma sala de teste. O paciente entra quando
+            ela estiver disponível. Não há transmissão de áudio ou vídeo.
           </p>
         </div>
 
