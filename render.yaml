@@ -1,0 +1,17 @@
+# Demonstração acadêmica protegida. Não é operação clínica em produção.
+services:
+  - type: web
+    name: medisync-demo
+    runtime: node
+    plan: free
+    branch: fix/revisao-apresentacao-20261119
+    buildCommand: npm --prefix backend ci --no-audit --no-fund && npm --prefix frontend ci --include=dev --no-audit --no-fund && npm --prefix frontend run build
+    startCommand: node scripts/host-demo.cjs
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.3
+      - key: NODE_ENV
+        value: production
+      - key: MEDISYNC_DEMO_PASSWORD
+        generateValue: true

@@ -8,6 +8,8 @@ O MediSync reúne consultas, pacientes, registros de atendimento, mensagens e sa
 
 **Revisão para apresentação — 19/11/2026:** [correções verificadas e roteiro de conferência](docs/REVISAO-APRESENTACAO-20261119.md). Mensagens, disponibilidade do chat e encerramento de salas de teste são sincronizados entre os dois perfis.
 
+**Abrir por um link:** [configuração de demonstração online no Render](docs/HOSPEDAGEM-DEMONSTRACAO.md), com interface, API e Socket.IO no mesmo endereço e acesso por código. O arquivo `render.yaml` prepara a publicação; a URL só estará disponível após conectar a conta e concluir o deploy. A execução local continua disponível.
+
 **Entrega acadêmica — 15/11/2026:** [índice dos artefatos](docs/ENTREGA.md), [roteiro de demonstração](docs/DEMONSTRACAO.md), [plano de marketing com anexos](docs/Plano-de-Marketing-MediSync-com-Anexos.docx) e [telas web/mobile](docs/anexos/README.md). As fontes das páginas da wiki estão em [docs/wiki](docs/wiki).
 
 > **Revisão de 14/11/2026:** [privacidade, acessibilidade e riscos pendentes](docs/AUDITORIA-PRIVACIDADE-ACESSIBILIDADE.md). A versão continua exclusivamente demonstrativa; não está autorizada para dados reais de saúde nem operação comercial. Páginas públicas em `/#/privacidade`, `/#/termos`, `/#/cookies`, `/#/reembolso`, `/#/responsaveis` e `/#/acessibilidade`.
@@ -291,7 +293,7 @@ O backend é JavaScript executado diretamente com Node.js; **não possui script 
 
 ## Aplicação publicada
 
-Esta versão está disponível para **execução local**, nos endereços informados acima. Não há uma URL de aplicação hospedada documentada no repositório; a publicação da aplicação está prevista como evolução.
+Esta versão está disponível para **execução local**, nos endereços informados acima. A [demonstração online](docs/HOSPEDAGEM-DEMONSTRACAO.md) está preparada em `render.yaml`, mas ainda depende da conexão da conta e da publicação no Render. Não há uma URL hospedada confirmada nesta preparação.
 
 O [repositório público](https://github.com/fatecrl-ite004/MediSync) disponibiliza o código-fonte, e a [wiki](https://github.com/fatecrl-ite004/MediSync/wiki) reúne a documentação do projeto.
 
